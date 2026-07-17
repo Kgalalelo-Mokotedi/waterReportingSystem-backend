@@ -1,4 +1,4 @@
-package com.waterreport.assignment.dto;
+package com.waterreportsystem.backend.assignment.dto;
 
 import jakarta.validation.constraints.NotNull;
 

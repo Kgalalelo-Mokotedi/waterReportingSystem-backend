@@ -1,7 +1,7 @@
-package com.waterreport.statusupdate.dto;
+package com.waterreportsystem.backend.statusupdate.dto;
 
-import com.waterreport.report.ReportStatus;
-import com.waterreport.statusupdate.StatusUpdate;
+import com.waterreportsystem.backend.enums.Status;
+import com.waterreportsystem.backend.statusupdate.StatusUpdate;
 import java.time.LocalDateTime;
 
 public class StatusUpdateResponse {
@@ -11,7 +11,7 @@ public class StatusUpdateResponse {
     private String reportReferenceNumber;
     private Long technicianId;
     private String technicianEmployeeNumber;
-    private ReportStatus newStatus;
+    private Status newStatus;
     private String comment;
     private LocalDateTime createdAt;
 
@@ -37,7 +37,7 @@ public class StatusUpdateResponse {
     public String getReportReferenceNumber() { return reportReferenceNumber; }
     public Long getTechnicianId() { return technicianId; }
     public String getTechnicianEmployeeNumber() { return technicianEmployeeNumber; }
-    public ReportStatus getNewStatus() { return newStatus; }
+    public Status getNewStatus() { return newStatus; }
     public String getComment() { return comment; }
     public LocalDateTime getCreatedAt() { return createdAt; }
 }

@@ -11,6 +11,8 @@ public interface WaterReportRepository extends JpaRepository<WaterReport, Long> 
 
     Page<WaterReport> findByStatus(Status status, Pageable pageable);
 
+    long countByStatus(Status status);
+
     Page<WaterReport> findByPriority(Priority priority, Pageable pageable);
 
     Page<WaterReport> findByMunicipalityContainingIgnoreCase(String municipality, Pageable pageable);
@@ -20,5 +22,4 @@ public interface WaterReportRepository extends JpaRepository<WaterReport, Long> 
     Page<WaterReport> findByCategoryId(Long categoryId, Pageable pageable);
 
     Page<WaterReport> findByTitleContainingIgnoreCase(String title, Pageable pageable);
-
 }

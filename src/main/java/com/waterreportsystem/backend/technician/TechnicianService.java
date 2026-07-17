@@ -1,8 +1,9 @@
-package com.waterreport.technician;
+package com.waterreportsystem.backend.technician;
 
-import com.waterreport.technician.dto.TechnicianRequest;
-import com.waterreport.technician.dto.TechnicianResponse;
-import com.waterreport.user.User;
+import com.waterreportsystem.backend.technician.dto.TechnicianRequest;
+import com.waterreportsystem.backend.technician.dto.TechnicianResponse;
+import com.waterreportsystem.backend.entity.User;
+import com.waterreportsystem.backend.repository.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,9 +15,14 @@ import java.util.stream.Collectors;
 public class TechnicianService {
 
     private final TechnicianRepository technicianRepository;
+    private final UserRepository userRepository;
 
-    public TechnicianService(TechnicianRepository technicianRepository) {
+    public TechnicianService(
+            TechnicianRepository technicianRepository,
+            UserRepository userRepository
+    ) {
         this.technicianRepository = technicianRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -31,13 +37,15 @@ public class TechnicianService {
         // NOTE: once the real User entity/repository exists, look the user
         // up with userRepository.findById(...).orElseThrow(...) instead of
         // building a reference like this.
-        User userRef = new User();
-        userRef.setId(request.getUserId());
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "User not found: " + request.getUserId()
+                ));
 
         Technician technician = new Technician(
                 request.getEmployeeNumber(),
                 request.getSpecialisation(),
-                userRef
+                user
         );
 
         return TechnicianResponse.fromEntity(technicianRepository.save(technician));

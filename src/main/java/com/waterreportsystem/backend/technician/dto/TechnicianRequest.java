@@ -1,4 +1,4 @@
-package com.waterreport.technician.dto;
+package com.waterreportsystem.backend.technician.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;

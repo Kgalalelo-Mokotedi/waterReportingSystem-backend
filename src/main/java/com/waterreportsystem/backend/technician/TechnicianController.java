@@ -1,8 +1,8 @@
-package com.waterreport.technician;
+package com.waterreportsystem.backend.technician;
 
-import com.waterreport.common.ApiResponse;
-import com.waterreport.technician.dto.TechnicianRequest;
-import com.waterreport.technician.dto.TechnicianResponse;
+import com.waterreportsystem.backend.response.ApiResponse;
+import com.waterreportsystem.backend.technician.dto.TechnicianRequest;
+import com.waterreportsystem.backend.technician.dto.TechnicianResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;

@@ -1,13 +1,13 @@
-package com.waterreport.dashboard;
+package com.waterreportsystem.backend.dashboard;
 
-import com.waterreport.assignment.ReportAssignmentService;
-import com.waterreport.dashboard.dto.DashboardStatsResponse;
-import com.waterreport.dashboard.dto.TechnicianWorkloadSummary;
-import com.waterreport.report.ReportStatus;
-import com.waterreport.report.WaterReportRepository;
-import com.waterreport.technician.AvailabilityStatus;
-import com.waterreport.technician.Technician;
-import com.waterreport.technician.TechnicianRepository;
+import com.waterreportsystem.backend.assignment.ReportAssignmentService;
+import com.waterreportsystem.backend.dashboard.dto.DashboardStatsResponse;
+import com.waterreportsystem.backend.dashboard.dto.TechnicianWorkloadSummary;
+import com.waterreportsystem.backend.enums.Status;
+import com.waterreportsystem.backend.repository.WaterReportRepository;
+import com.waterreportsystem.backend.technician.AvailabilityStatus;
+import com.waterreportsystem.backend.technician.Technician;
+import com.waterreportsystem.backend.technician.TechnicianRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,11 +32,11 @@ public class DashboardService {
         DashboardStatsResponse stats = new DashboardStatsResponse();
 
         stats.setTotalReports(waterReportRepository.count());
-        stats.setReportedCount(waterReportRepository.countByStatus(ReportStatus.REPORTED));
-        stats.setAssignedCount(waterReportRepository.countByStatus(ReportStatus.ASSIGNED));
-        stats.setInProgressCount(waterReportRepository.countByStatus(ReportStatus.IN_PROGRESS));
-        stats.setResolvedCount(waterReportRepository.countByStatus(ReportStatus.RESOLVED));
-        stats.setRejectedCount(waterReportRepository.countByStatus(ReportStatus.REJECTED));
+        stats.setReportedCount(waterReportRepository.countByStatus(Status.REPORTED));
+        stats.setAssignedCount(waterReportRepository.countByStatus(Status.ASSIGNED));
+        stats.setInProgressCount(waterReportRepository.countByStatus(Status.IN_PROGRESS));
+        stats.setResolvedCount(waterReportRepository.countByStatus(Status.RESOLVED));
+        stats.setRejectedCount(waterReportRepository.countByStatus(Status.REJECTED));
 
         stats.setTotalTechnicians(technicianRepository.count());
         stats.setAvailableTechnicians(technicianRepository.countByAvailabilityStatus(AvailabilityStatus.AVAILABLE));

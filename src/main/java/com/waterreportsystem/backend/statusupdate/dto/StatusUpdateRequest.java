@@ -1,6 +1,6 @@
-package com.waterreport.statusupdate.dto;
+package com.waterreportsystem.backend.statusupdate.dto;
 
-import com.waterreport.report.ReportStatus;
+import com.waterreportsystem.backend.enums.Status;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
@@ -14,7 +14,7 @@ public class StatusUpdateRequest {
     private Long technicianId;
 
     @NotNull(message = "newStatus is required")
-    private ReportStatus newStatus;
+    private Status newStatus;
 
     @Size(max = 500, message = "comment must be under 500 characters")
     private String comment;
@@ -25,8 +25,8 @@ public class StatusUpdateRequest {
     public Long getTechnicianId() { return technicianId; }
     public void setTechnicianId(Long technicianId) { this.technicianId = technicianId; }
 
-    public ReportStatus getNewStatus() { return newStatus; }
-    public void setNewStatus(ReportStatus newStatus) { this.newStatus = newStatus; }
+    public Status getNewStatus() { return newStatus; }
+    public void setNewStatus(Status newStatus) { this.newStatus = newStatus; }
 
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }

@@ -1,7 +1,7 @@
-package com.waterreport.assignment.dto;
+package com.waterreportsystem.backend.assignment.dto;
 
-import com.waterreport.assignment.AssignmentStatus;
-import com.waterreport.assignment.ReportAssignment;
+import com.waterreportsystem.backend.assignment.AssignmentStatus;
+import com.waterreportsystem.backend.assignment.ReportAssignment;
 import java.time.LocalDateTime;
 
 public class AssignmentResponse {

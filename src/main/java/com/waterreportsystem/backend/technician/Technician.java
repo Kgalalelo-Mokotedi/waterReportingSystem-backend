@@ -1,6 +1,6 @@
-package com.waterreport.technician;
+package com.waterreportsystem.backend.technician;
 
-import com.waterreport.user.User;
+import com.waterreportsystem.backend.entity.User;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 

@@ -1,7 +1,7 @@
-package com.waterreport.assignment;
+package com.waterreportsystem.backend.assignment;
 
-import com.waterreport.report.WaterReport;
-import com.waterreport.technician.Technician;
+import com.waterreportsystem.backend.entity.WaterReport;
+import com.waterreportsystem.backend.technician.Technician;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 

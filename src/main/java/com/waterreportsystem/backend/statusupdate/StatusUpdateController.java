@@ -1,8 +1,8 @@
-package com.waterreport.statusupdate;
+package com.waterreportsystem.backend.statusupdate;
 
-import com.waterreport.common.ApiResponse;
-import com.waterreport.statusupdate.dto.StatusUpdateRequest;
-import com.waterreport.statusupdate.dto.StatusUpdateResponse;
+import com.waterreportsystem.backend.response.ApiResponse;
+import com.waterreportsystem.backend.statusupdate.dto.StatusUpdateRequest;
+import com.waterreportsystem.backend.statusupdate.dto.StatusUpdateResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;

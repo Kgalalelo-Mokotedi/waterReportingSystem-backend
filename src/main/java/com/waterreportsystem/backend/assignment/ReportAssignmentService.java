@@ -1,13 +1,13 @@
-package com.waterreport.assignment;
+package com.waterreportsystem.backend.assignment;
 
-import com.waterreport.assignment.dto.AssignTechnicianRequest;
-import com.waterreport.assignment.dto.AssignmentResponse;
-import com.waterreport.report.ReportStatus;
-import com.waterreport.report.WaterReport;
-import com.waterreport.report.WaterReportRepository;
-import com.waterreport.technician.AvailabilityStatus;
-import com.waterreport.technician.Technician;
-import com.waterreport.technician.TechnicianRepository;
+import com.waterreportsystem.backend.assignment.dto.AssignTechnicianRequest;
+import com.waterreportsystem.backend.assignment.dto.AssignmentResponse;
+import com.waterreportsystem.backend.enums.Status;
+import com.waterreportsystem.backend.entity.WaterReport;
+import com.waterreportsystem.backend.repository.WaterReportRepository;
+import com.waterreportsystem.backend.technician.AvailabilityStatus;
+import com.waterreportsystem.backend.technician.Technician;
+import com.waterreportsystem.backend.technician.TechnicianRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -64,7 +64,7 @@ public class ReportAssignmentService {
         ReportAssignment assignment = new ReportAssignment(report, technician, request.getNotes());
         assignment = assignmentRepository.save(assignment);
 
-        report.setStatus(ReportStatus.ASSIGNED);
+        report.setStatus(Status.ASSIGNED);
         waterReportRepository.save(report);
 
         technician.setAvailabilityStatus(AvailabilityStatus.BUSY);
@@ -101,7 +101,7 @@ public class ReportAssignmentService {
         assignment.setAssignmentStatus(AssignmentStatus.IN_PROGRESS);
 
         WaterReport report = assignment.getReport();
-        report.setStatus(ReportStatus.IN_PROGRESS);
+        report.setStatus(Status.IN_PROGRESS);
         waterReportRepository.save(report);
 
         return AssignmentResponse.fromEntity(assignmentRepository.save(assignment));
@@ -115,7 +115,7 @@ public class ReportAssignmentService {
         assignmentRepository.save(assignment);
 
         WaterReport report = assignment.getReport();
-        report.setStatus(ReportStatus.RESOLVED);
+        report.setStatus(Status.RESOLVED);
         report.setResolvedAt(LocalDateTime.now());
         waterReportRepository.save(report);
 
@@ -137,7 +137,7 @@ public class ReportAssignmentService {
         assignmentRepository.save(assignment);
 
         WaterReport report = assignment.getReport();
-        report.setStatus(ReportStatus.REPORTED);
+        report.setStatus(Status.REPORTED);
         waterReportRepository.save(report);
 
         return AssignmentResponse.fromEntity(assignment);

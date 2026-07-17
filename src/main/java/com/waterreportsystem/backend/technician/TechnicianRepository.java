@@ -1,4 +1,4 @@
-package com.waterreport.technician;
+package com.waterreportsystem.backend.technician;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
