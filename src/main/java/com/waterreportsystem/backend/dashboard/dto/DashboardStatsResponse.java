@@ -1,4 +1,4 @@
-package com.waterreport.dashboard.dto;
+package com.waterreportsystem.backend.dashboard.dto;
 
 import java.util.List;
 

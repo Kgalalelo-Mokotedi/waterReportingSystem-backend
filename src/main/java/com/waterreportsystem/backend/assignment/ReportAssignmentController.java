@@ -1,8 +1,8 @@
-package com.waterreport.assignment;
+package com.waterreportsystem.backend.assignment;
 
-import com.waterreport.assignment.dto.AssignTechnicianRequest;
-import com.waterreport.assignment.dto.AssignmentResponse;
-import com.waterreport.common.ApiResponse;
+import com.waterreportsystem.backend.assignment.dto.AssignTechnicianRequest;
+import com.waterreportsystem.backend.assignment.dto.AssignmentResponse;
+import com.waterreportsystem.backend.response.ApiResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -13,9 +13,9 @@ import java.util.List;
 @RequestMapping("/api/assignments")
 public class ReportAssignmentController {
 
-    private final ReportAssignmentService assignmentService;
+    private final com.waterreportsystem.backend.assignment.ReportAssignmentService assignmentService;
 
-    public ReportAssignmentController(ReportAssignmentService assignmentService) {
+    public ReportAssignmentController(com.waterreportsystem.backend.assignment.ReportAssignmentService assignmentService) {
         this.assignmentService = assignmentService;
     }
 

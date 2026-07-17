@@ -1,6 +1,6 @@
-package com.waterreport.dashboard.dto;
+package com.waterreportsystem.backend.dashboard.dto;
 
-import com.waterreport.technician.AvailabilityStatus;
+import com.waterreportsystem.backend.technician.AvailabilityStatus;
 
 /** One row of the "workload per technician" breakdown on the admin dashboard. */
 public class TechnicianWorkloadSummary {

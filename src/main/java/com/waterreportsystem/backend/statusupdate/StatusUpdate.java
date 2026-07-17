@@ -1,8 +1,8 @@
-package com.waterreport.statusupdate;
+package com.waterreportsystem.backend.statusupdate;
 
-import com.waterreport.report.ReportStatus;
-import com.waterreport.report.WaterReport;
-import com.waterreport.technician.Technician;
+import com.waterreportsystem.backend.enums.Status;
+import com.waterreportsystem.backend.entity.WaterReport;
+import com.waterreportsystem.backend.technician.Technician;
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
@@ -29,7 +29,7 @@ public class StatusUpdate {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "new_status", length = 30, nullable = false)
-    private ReportStatus newStatus;
+    private Status newStatus;
 
     @Column(length = 500)
     private String comment;
@@ -44,7 +44,7 @@ public class StatusUpdate {
 
     public StatusUpdate() {}
 
-    public StatusUpdate(WaterReport report, Technician technician, ReportStatus newStatus, String comment) {
+    public StatusUpdate(WaterReport report, Technician technician, Status newStatus, String comment) {
         this.report = report;
         this.technician = technician;
         this.newStatus = newStatus;
@@ -62,8 +62,8 @@ public class StatusUpdate {
     public Technician getTechnician() { return technician; }
     public void setTechnician(Technician technician) { this.technician = technician; }
 
-    public ReportStatus getNewStatus() { return newStatus; }
-    public void setNewStatus(ReportStatus newStatus) { this.newStatus = newStatus; }
+    public Status getNewStatus() { return newStatus; }
+    public void setNewStatus(Status newStatus) { this.newStatus = newStatus; }
 
     public String getComment() { return comment; }
     public void setComment(String comment) { this.comment = comment; }

@@ -1,4 +1,4 @@
-package com.waterreport.technician;
+package com.waterreportsystem.backend.technician;
 
 public enum AvailabilityStatus {
     AVAILABLE,

@@ -1,7 +1,7 @@
-package com.waterreport.technician.dto;
+package com.waterreportsystem.backend.technician.dto;
 
-import com.waterreport.technician.AvailabilityStatus;
-import com.waterreport.technician.Technician;
+import com.waterreportsystem.backend.technician.AvailabilityStatus;
+import com.waterreportsystem.backend.technician.Technician;
 import java.time.LocalDateTime;
 
 public class TechnicianResponse {

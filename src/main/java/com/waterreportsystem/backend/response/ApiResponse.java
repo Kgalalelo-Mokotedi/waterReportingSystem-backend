@@ -16,6 +16,10 @@ public class ApiResponse<T> {
         this.timestamp = LocalDateTime.now();
     }
 
+    public static <T> ApiResponse<T> ok(String message, T data) {
+        return new ApiResponse<>(true, message, data);
+    }
+
     public boolean isSuccess() {
         return success;
     }

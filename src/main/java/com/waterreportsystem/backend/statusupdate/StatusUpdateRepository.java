@@ -1,4 +1,4 @@
-package com.waterreport.statusupdate;
+package com.waterreportsystem.backend.statusupdate;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;

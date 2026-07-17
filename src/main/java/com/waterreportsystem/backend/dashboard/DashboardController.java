@@ -1,7 +1,7 @@
-package com.waterreport.dashboard;
+package com.waterreportsystem.backend.dashboard;
 
-import com.waterreport.common.ApiResponse;
-import com.waterreport.dashboard.dto.DashboardStatsResponse;
+import com.waterreportsystem.backend.response.ApiResponse;
+import com.waterreportsystem.backend.dashboard.dto.DashboardStatsResponse;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;

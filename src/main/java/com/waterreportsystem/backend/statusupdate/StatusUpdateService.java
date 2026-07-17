@@ -1,12 +1,12 @@
-package com.waterreport.statusupdate;
+package com.waterreportsystem.backend.statusupdate;
 
-import com.waterreport.report.ReportStatus;
-import com.waterreport.report.WaterReport;
-import com.waterreport.report.WaterReportRepository;
-import com.waterreport.statusupdate.dto.StatusUpdateRequest;
-import com.waterreport.statusupdate.dto.StatusUpdateResponse;
-import com.waterreport.technician.Technician;
-import com.waterreport.technician.TechnicianRepository;
+import com.waterreportsystem.backend.enums.Status;
+import com.waterreportsystem.backend.entity.WaterReport;
+import com.waterreportsystem.backend.repository.WaterReportRepository;
+import com.waterreportsystem.backend.statusupdate.dto.StatusUpdateRequest;
+import com.waterreportsystem.backend.statusupdate.dto.StatusUpdateResponse;
+import com.waterreportsystem.backend.technician.Technician;
+import com.waterreportsystem.backend.technician.TechnicianRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -47,7 +47,7 @@ public class StatusUpdateService {
         update = statusUpdateRepository.save(update);
 
         report.setStatus(request.getNewStatus());
-        if (request.getNewStatus() == ReportStatus.RESOLVED) {
+        if (request.getNewStatus() == Status.RESOLVED) {
             report.setResolvedAt(LocalDateTime.now());
         }
         waterReportRepository.save(report);
