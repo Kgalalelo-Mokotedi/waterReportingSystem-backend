@@ -41,6 +41,15 @@ public class WaterReportController {
         return waterReportService.getReportById(id);
     }
 
+    @GetMapping("/resident/{residentId}")
+    public Page<WaterReportResponse> getReportsByResident(
+            @PathVariable Long residentId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+
+        return waterReportService.getReportsByResidentId(residentId, page, size);
+    }
+
 
     @PutMapping("/{id}")
     public WaterReportResponse updateReport(

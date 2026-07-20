@@ -22,4 +22,6 @@ public interface WaterReportRepository extends JpaRepository<WaterReport, Long> 
     Page<WaterReport> findByCategoryId(Long categoryId, Pageable pageable);
 
     Page<WaterReport> findByTitleContainingIgnoreCase(String title, Pageable pageable);
+
+    Page<WaterReport> findByResidentId(Long residentId, Pageable pageable);
 }
