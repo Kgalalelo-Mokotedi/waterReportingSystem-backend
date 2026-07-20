@@ -1,0 +1,421 @@
+{
+  "info": {
+    "_postman_id": "b2e782b1-a0ba-4d97-8aeb-a0eaefa380c2",
+    "name": "Water Report System — Technician & Admin Module",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "54554776"
+  },
+  "item": [
+    {
+      "name": "📊 Dashboard",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/dashboard/stats",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "dashboard",
+                "stats"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "👷 Technicians",
+      "item": [
+        {
+          "name": "Get All Technicians",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/technicians",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "technicians"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Available Technicians",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/technicians/available",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "technicians",
+                "available"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Technician by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/technicians/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "technicians",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Add Technician",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"employeeNumber\": \"TECH-010\",\n  \"specialisation\": \"Leak detection\"\n}"
+            },
+            "url": {
+              "raw": "{{base}}/technicians",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "technicians"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Technician",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1,\n  \"employeeNumber\": \"TECH-001\",\n  \"specialisation\": \"Pipe repair & leak detection\"\n}"
+            },
+            "url": {
+              "raw": "{{base}}/technicians/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "technicians",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Availability",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "?status=AVAILABLE",
+              "query": [
+                {
+                  "key": "status",
+                  "value": "AVAILABLE"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Technician",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/technicians/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "technicians",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "🔗 Assignments",
+      "item": [
+        {
+          "name": "Assign Technician to Report",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": 2,\n  \"technicianId\": 2,\n  \"notes\": \"Low pressure complaint — check main valve\"\n}"
+            },
+            "url": {
+              "raw": "{{base}}/assignments",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assignments for Technician",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/assignments/technician/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments",
+                "technician",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Active Assignments for Technician",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/assignments/technician/1/active",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments",
+                "technician",
+                "1",
+                "active"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Workload Count",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/assignments/technician/1/workload",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments",
+                "technician",
+                "1",
+                "workload"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Assignment History for Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/assignments/report/1/history",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments",
+                "report",
+                "1",
+                "history"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Mark Assignment In Progress",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/assignments/1/start",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments",
+                "1",
+                "start"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Complete Assignment",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/assignments/1/complete",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments",
+                "1",
+                "complete"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancel Assignment",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/assignments/1/cancel",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "assignments",
+                "1",
+                "cancel"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "✏️ Status Updates",
+      "item": [
+        {
+          "name": "Log Status Update",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reportId\": 1,\n  \"technicianId\": 1,\n  \"newStatus\": \"IN_PROGRESS\",\n  \"comment\": \"Arrived on site. Burst pipe located on Main Rd — beginning repairs.\"\n}"
+            },
+            "url": {
+              "raw": "{{base}}/status-updates",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "status-updates"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Status History for Report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/status-updates/report/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "status-updates",
+                "report",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Updates by Technician",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base}}/status-updates/technician/1",
+              "host": [
+                "{{base}}"
+              ],
+              "path": [
+                "status-updates",
+                "technician",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base",
+      "value": "http://localhost:8080/api"
+    }
+  ]
+}
