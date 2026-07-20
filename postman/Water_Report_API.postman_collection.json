@@ -1,0 +1,255 @@
+{
+  "info": {
+    "_postman_id": "c8ff4d6b-3709-40b0-aed9-d73714148437",
+    "name": "Water Report API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_exporter_id": "52683463",
+    "_collection_link": "https://go.postman.co/collection/52683463-c8ff4d6b-3709-40b0-aed9-d73714148437?source=collection_link"
+  },
+  "item": [
+    {
+      "name": "POST",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n  \"title\": \"Burst Pipe on Main Street\",\r\n  \"description\": \"Large burst pipe causing flooding.\",\r\n  \"photoUrl\": \"https://example.com/photo.jpg\",\r\n  \"priority\": \"HIGH\",\r\n  \"status\": \"REPORTED\",\r\n  \"streetName\": \"Main Street\",\r\n  \"suburb\": \"Soweto\",\r\n  \"wardNumber\": \"12\",\r\n  \"municipality\": \"City of Johannesburg\",\r\n  \"province\": \"Gauteng\",\r\n  \"residentId\": 1,\r\n  \"categoryId\": 2\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/reports",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "reports"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GET All Water Reports",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "GET Water Report By ID",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "PUT",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "DELETE",
+      "request": {
+        "method": "DELETE",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/reports/1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "reports",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search By Priority",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/reports/search/priority?priority=HIGH",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "reports",
+            "search",
+            "priority"
+          ],
+          "query": [
+            {
+              "key": "priority",
+              "value": "HIGH"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search By Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/reports/search/status?status=REPORTED",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "reports",
+            "search",
+            "status"
+          ],
+          "query": [
+            {
+              "key": "status",
+              "value": "REPORTED"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search by Municipality",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/reports/search/municipality?municipality=Johannesburg",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "reports",
+            "search",
+            "municipality"
+          ],
+          "query": [
+            {
+              "key": "municipality",
+              "value": "Johannesburg"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Search By Suburb",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "Search By Category",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "Search By Title",
+      "request": {
+        "method": "GET",
+        "header": []
+      },
+      "response": []
+    },
+    {
+      "name": "Check Page",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/reports?page=1&size=1",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "reports"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "1"
+            },
+            {
+              "key": "size",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "Sorting",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8080/api/reports?sortBy=title",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8080",
+          "path": [
+            "api",
+            "reports"
+          ],
+          "query": [
+            {
+              "key": "sortBy",
+              "value": "title"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ]
+}
