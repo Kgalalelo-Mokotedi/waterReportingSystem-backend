@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 export default function AuthPortal() {
+    const navigate = useNavigate();
     const [isLoginView, setIsLoginView] = useState(true);
     const [loading, setLoading] = useState(false);
-    const [showPassword, setShowPassword] = useState(false); // State to toggle password visibility
+    const [showPassword, setShowPassword] = useState(false);
     const [alert, setAlert] = useState({ type: '', text: '' });
 
     const [formData, setFormData] = useState({
@@ -20,15 +22,38 @@ export default function AuthPortal() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
+    // Helper to decode JWT token and extract the user's role
+    const getRoleFromToken = (token) => {
+        try {
+            if (!token || typeof token !== 'string') return 'RESIDENT';
+            const payloadBase64 = token.split('.')[1];
+            if (!payloadBase64) return 'RESIDENT';
+            const decodedPayload = JSON.parse(atob(payloadBase64));
+            return (decodedPayload.role || decodedPayload.roles || decodedPayload.authorities || 'RESIDENT').toString().toUpperCase();
+        } catch (e) {
+            console.error('Error decoding JWT token:', e);
+            return 'RESIDENT';
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setAlert({ type: '', text: '' });
 
         const endpoint = isLoginView ? '/login' : '/register';
+
+        // Aligned payload matching exact property names for backend DTO
         const payload = isLoginView
             ? { email: formData.email, password: formData.password }
-            : formData;
+            : {
+                firstName: formData.firstName,
+                lastName: formData.lastName,
+                email: formData.email,
+                password: formData.password,
+                phoneNumber: formData.phoneNumber,
+                address: formData.address
+            };
 
         try {
             const response = await axios.post(`http://localhost:8081/api/auth${endpoint}`, payload, {
@@ -37,16 +62,31 @@ export default function AuthPortal() {
 
             const apiResponse = response.data;
 
-            setAlert({
-                type: 'success',
-                text: apiResponse.message || (isLoginView ? 'Login successful!' : 'Account created successfully!')
-            });
-
             if (isLoginView) {
-                if (apiResponse.data?.token) {
-                    localStorage.setItem('token', apiResponse.data.token);
+                // Extract JWT token from nested or direct response
+                const token = apiResponse.token || apiResponse.data?.token || apiResponse.data;
+
+                if (token) {
+                    localStorage.setItem('token', token);
+
+                    // Decode role and redirect automatically
+                    const role = getRoleFromToken(token);
+
+                    if (role.includes('ADMIN') || role.includes('MUNICIPAL')) {
+                        navigate('/admin');
+                    } else if (role.includes('TECH') || role.includes('TECHNICIAN')) {
+                        navigate('/technician');
+                    } else {
+                        navigate('/resident');
+                    }
+                } else {
+                    setAlert({ type: 'error', text: 'Login successful, but token was missing.' });
                 }
             } else {
+                setAlert({
+                    type: 'success',
+                    text: apiResponse.message || 'Account created successfully! Please sign in.'
+                });
                 setFormData({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', address: '' });
                 setIsLoginView(true);
             }
@@ -55,7 +95,9 @@ export default function AuthPortal() {
             const serverMessage = error.response?.data?.message;
             setAlert({
                 type: 'error',
-                text: serverMessage || 'An unexpected connection error occurred.'
+                text: serverMessage || (error.response?.status === 401
+                    ? 'Invalid email or password.'
+                    : 'An unexpected connection error occurred.')
             });
         } finally {
             setLoading(false);
@@ -89,7 +131,6 @@ export default function AuthPortal() {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    {/* REGISTRATION ONLY FIELDS */}
                     {!isLoginView && (
                         <div style={styles.row}>
                             <div style={{ ...styles.inputGroup, flex: 1, marginRight: '10px' }}>
@@ -119,7 +160,6 @@ export default function AuthPortal() {
                         </div>
                     )}
 
-                    {/* SHARED FIELDS */}
                     <div style={styles.inputGroup}>
                         <label style={styles.label}>Email Address</label>
                         <input
@@ -127,7 +167,7 @@ export default function AuthPortal() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
-                            placeholder="customer@foodapp.com"
+                            placeholder="resident@example.com"
                             required
                             style={styles.input}
                         />
@@ -152,13 +192,11 @@ export default function AuthPortal() {
                                 title={showPassword ? "Hide password" : "Show password"}
                             >
                                 {showPassword ? (
-                                    /* Eye Hidden SVG icon */
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
                                         <line x1="1" y1="1" x2="23" y2="23"></line>
                                     </svg>
                                 ) : (
-                                    /* Eye Open SVG icon */
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                         <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
                                         <circle cx="12" cy="12" r="3"></circle>
@@ -168,7 +206,6 @@ export default function AuthPortal() {
                         </div>
                     </div>
 
-                    {/* REGISTRATION ONLY FIELDS */}
                     {!isLoginView && (
                         <>
                             <div style={styles.inputGroup}>
@@ -178,19 +215,19 @@ export default function AuthPortal() {
                                     name="phoneNumber"
                                     value={formData.phoneNumber}
                                     onChange={handleChange}
-                                    placeholder="+1234567890"
+                                    placeholder="+27123456789"
                                     required
                                     style={styles.input}
                                 />
                             </div>
 
                             <div style={styles.inputGroup}>
-                                <label style={styles.label}>Delivery Address</label>
+                                <label style={styles.label}>Address</label>
                                 <textarea
                                     name="address"
                                     value={formData.address}
                                     onChange={handleChange}
-                                    placeholder="123 Main Street, Appetizer City"
+                                    placeholder="123 Waterworks Street, Suburb"
                                     required
                                     rows="2"
                                     style={{ ...styles.input, resize: 'vertical' }}
@@ -263,7 +300,8 @@ const styles = {
         border: '1px solid #ccd4db',
         boxSizing: 'border-box',
         outline: 'none',
-        color: '#ffffff'
+        color: '#333333',
+        backgroundColor: '#ffffff'
     },
     passwordWrapper: {
         display: 'flex',
@@ -279,7 +317,8 @@ const styles = {
         border: '1px solid #ccd4db',
         boxSizing: 'border-box',
         outline: 'none',
-        color: '#ffffff'
+        color: '#333333',
+        backgroundColor: '#ffffff'
     },
     iconButton: {
         position: 'absolute',
