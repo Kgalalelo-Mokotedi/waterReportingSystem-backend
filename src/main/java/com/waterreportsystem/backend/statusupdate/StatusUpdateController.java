@@ -20,19 +20,19 @@ public class StatusUpdateController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'TECHNICIAN', 'ROLE_ADMIN', 'ROLE_TECHNICIAN')")
     public ApiResponse<StatusUpdateResponse> logStatusUpdate(@Valid @RequestBody StatusUpdateRequest request) {
         return ApiResponse.ok("Status update logged", statusUpdateService.logStatusUpdate(request));
     }
 
     @GetMapping("/report/{reportId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN', 'RESIDENT')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'TECHNICIAN', 'RESIDENT', 'ROLE_ADMIN', 'ROLE_TECHNICIAN', 'ROLE_RESIDENT')")
     public ApiResponse<List<StatusUpdateResponse>> getHistoryForReport(@PathVariable Long reportId) {
         return ApiResponse.ok("Status history retrieved", statusUpdateService.getHistoryForReport(reportId));
     }
 
     @GetMapping("/technician/{technicianId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TECHNICIAN')")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'TECHNICIAN', 'ROLE_ADMIN', 'ROLE_TECHNICIAN')")
     public ApiResponse<List<StatusUpdateResponse>> getUpdatesByTechnician(@PathVariable Long technicianId) {
         return ApiResponse.ok("Technician's updates retrieved", statusUpdateService.getUpdatesByTechnician(technicianId));
     }
