@@ -183,6 +183,17 @@ public class WaterReportServiceImpl implements WaterReportService {
                 PageRequest.of(page, size)
         ).map(this::mapToResponse);
     }
+    @Override
+    public Page<WaterReportResponse> getReportsByResidentId(
+            Long residentId,
+            int page,
+            int size) {
+
+        return waterReportRepository.findByResidentId(
+                residentId,
+                PageRequest.of(page, size, Sort.by("createdAt").descending())
+        ).map(this::mapToResponse);
+    }
 
 
     private WaterReportResponse mapToResponse(WaterReport report) {

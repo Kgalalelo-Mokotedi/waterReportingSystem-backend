@@ -29,4 +29,6 @@ public interface WaterReportService {
     Page<WaterReportResponse> searchByCategory(Long categoryId, int page, int size);
 
     Page<WaterReportResponse> searchByTitle(String title, int page, int size);
+
+    Page<WaterReportResponse> getReportsByResidentId(Long residentId, int page, int size);
 }
