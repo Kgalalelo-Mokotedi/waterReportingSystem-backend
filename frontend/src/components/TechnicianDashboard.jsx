@@ -21,10 +21,10 @@ export default function TechnicianDashboard({ onLogout }) {
     };
 
     const parseStatusString = (statusValue) => {
-        if (!statusValue) return 'OPEN';
+        if (!statusValue) return 'REPORTED';
         if (typeof statusValue === 'string') return statusValue;
         if (typeof statusValue === 'object') {
-            return statusValue.status || statusValue.name || statusValue.message || 'OPEN';
+            return statusValue.status || statusValue.name || statusValue.message || 'REPORTED';
         }
         return String(statusValue);
     };
@@ -41,20 +41,15 @@ export default function TechnicianDashboard({ onLogout }) {
         };
 
         switch (status) {
+            case 'REPORTED':
+                return { ...baseStyle, backgroundColor: '#f0f5ff', color: '#2f54eb', border: '1px solid #adc6ff' };
             case 'ASSIGNED':
-            case 'OPEN':
-            case 'PENDING':
                 return { ...baseStyle, backgroundColor: '#fffbe6', color: '#faad14', border: '1px solid #ffe58f' };
             case 'IN_PROGRESS':
-            case 'ON_SITE':
                 return { ...baseStyle, backgroundColor: '#e6f7ff', color: '#1890ff', border: '1px solid #91d5ff' };
-            case 'WAITING_PARTS':
-                return { ...baseStyle, backgroundColor: '#fff2e8', color: '#fa541c', border: '1px solid #ffbb96' };
             case 'RESOLVED':
-            case 'COMPLETED':
-            case 'CLOSED':
                 return { ...baseStyle, backgroundColor: '#f6ffed', color: '#52c41a', border: '1px solid #b7eb8f' };
-            case 'CANCELLED':
+            case 'REJECTED':
                 return { ...baseStyle, backgroundColor: '#fff1f0', color: '#f5222d', border: '1px solid #ffa39e' };
             default:
                 return { ...baseStyle, backgroundColor: '#f5f5f5', color: '#595959', border: '1px solid #d9d9d9' };
@@ -99,13 +94,17 @@ export default function TechnicianDashboard({ onLogout }) {
     const fetchAssignments = async () => {
         setIsLoading(true);
         try {
-            // Uses standard GET /api/reports endpoint natively available on your backend
             const res = await axios.get('http://localhost:8081/api/reports', getAuthHeaders());
             const reportList = extractArrayData(res?.data);
 
             setAssignments(reportList);
             if (reportList.length > 0) {
-                setSelectedJob(reportList[0]);
+                // Preserve selection if it still exists, else default to first
+                setSelectedJob(prev => {
+                    if (!prev) return reportList[0];
+                    const found = reportList.find(r => (r.reportId || r.id) === (prev.reportId || prev.id));
+                    return found || reportList[0];
+                });
             } else {
                 setSelectedJob(null);
             }
@@ -156,23 +155,41 @@ export default function TechnicianDashboard({ onLogout }) {
         const targetReportId = selectedJob.reportId || selectedJob.report?.id || selectedJob.id;
 
         try {
-            // Uses standard PUT /api/reports/{id} update endpoint matching backend WaterReportRequest payload
-            await axios.put(`http://localhost:8081/api/reports/${targetReportId}`, {
-                title: selectedJob.title || selectedJob.report?.title || 'Updated Outage Report',
-                description: selectedJob.description || selectedJob.report?.description || 'Status update modification',
-                municipality: selectedJob.municipality || selectedJob.report?.municipality || 'Default Municipality',
-                suburb: selectedJob.suburb || selectedJob.report?.suburb || 'Default Suburb',
-                priority: selectedJob.priority || selectedJob.report?.priority || 'MEDIUM',
-                status: newStatusLabel
+            // Automatically update status via status-updates endpoint or PUT report endpoint
+            await axios.post('http://localhost:8081/api/status-updates', {
+                reportId: Number(targetReportId),
+                technicianId: Number(technicianId),
+                newStatus: newStatusLabel,
+                comment: `Job status automatically changed to ${newStatusLabel} by technician.`
             }, getAuthHeaders());
 
             alert(`Job status successfully updated to ${newStatusLabel}!`);
             await fetchAssignments();
             await fetchStatusHistory(targetReportId);
             await fetchMetrics();
+
+            // Update selectedJob state instantly for UI responsiveness
+            setSelectedJob(prev => prev ? { ...prev, status: newStatusLabel } : null);
         } catch (error) {
             console.error('Failed to update assignment status:', error);
-            alert('Error updating assignment on the server.');
+            try {
+                await axios.put(`http://localhost:8081/api/reports/${targetReportId}`, {
+                    title: selectedJob.title || selectedJob.report?.title || 'Updated Outage Report',
+                    description: selectedJob.description || selectedJob.report?.description || 'Status update modification',
+                    municipality: selectedJob.municipality || selectedJob.report?.municipality || 'Default Municipality',
+                    suburb: selectedJob.suburb || selectedJob.report?.suburb || 'Default Suburb',
+                    priority: selectedJob.priority || selectedJob.report?.priority || 'MEDIUM',
+                    status: newStatusLabel
+                }, getAuthHeaders());
+
+                alert(`Job status successfully updated to ${newStatusLabel}!`);
+                await fetchAssignments();
+                await fetchStatusHistory(targetReportId);
+                await fetchMetrics();
+                setSelectedJob(prev => prev ? { ...prev, status: newStatusLabel } : null);
+            } catch (err2) {
+                alert('Error updating assignment on the server.');
+            }
         }
     };
 
@@ -196,6 +213,7 @@ export default function TechnicianDashboard({ onLogout }) {
             await fetchAssignments();
             await fetchStatusHistory(targetReportId);
             await fetchMetrics();
+            setSelectedJob(prev => prev ? { ...prev, status: statusUpdate.status } : null);
         } catch (error) {
             console.error('Failed to post status update:', error);
             alert('Failed to save status update to the database.');
@@ -247,17 +265,20 @@ export default function TechnicianDashboard({ onLogout }) {
                             ) : (
                                 assignments.map((job) => {
                                     const jobStatusStr = parseStatusString(job?.status);
+                                    const jobId = job?.reportId || job?.report?.id || job?.id;
+                                    const isSelected = selectedJob && (selectedJob.reportId || selectedJob.report?.id || selectedJob.id) === jobId;
+
                                     return (
                                         <div
-                                            key={job?.id || Math.random()}
+                                            key={jobId || Math.random()}
                                             onClick={() => setSelectedJob(job)}
                                             style={{
                                                 ...styles.jobCard,
-                                                borderLeft: selectedJob?.id === job?.id ? '4px solid #5e35b1' : '1px solid #e0e0e0',
-                                                backgroundColor: selectedJob?.id === job?.id ? '#f7f4fc' : '#ffffff'
+                                                borderLeft: isSelected ? '4px solid #5e35b1' : '1px solid #e0e0e0',
+                                                backgroundColor: isSelected ? '#f7f4fc' : '#ffffff'
                                             }}
                                         >
-                                            <strong>RPT-{job?.reportId || job?.report?.id || job?.id}</strong>
+                                            <strong>RPT-{jobId}</strong>
                                             <p style={{ margin: '4px 0', fontSize: '13px', color: '#434343' }}>
                                                 {typeof job?.title === 'string' ? job.title : (job?.report?.title || job?.address || 'Site Location')}
                                             </p>
@@ -312,10 +333,10 @@ export default function TechnicianDashboard({ onLogout }) {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => handleAssignmentAction('CANCELLED')}
+                                        onClick={() => handleAssignmentAction('REJECTED')}
                                         style={styles.actionCancelBtn}
                                     >
-                                        ✖ Cancel
+                                        ✖ Reject
                                     </button>
                                 </div>
 
@@ -330,10 +351,11 @@ export default function TechnicianDashboard({ onLogout }) {
                                             value={statusUpdate.status}
                                             onChange={(e) => setStatusUpdate({ ...statusUpdate, status: e.target.value })}
                                         >
+                                            <option value="REPORTED">Reported</option>
                                             <option value="ASSIGNED">Assigned</option>
-                                            <option value="IN_PROGRESS">In Progress / On Site</option>
-                                            <option value="WAITING_PARTS">Waiting for Parts</option>
-                                            <option value="RESOLVED">Resolved / Work Done</option>
+                                            <option value="IN_PROGRESS">In Progress</option>
+                                            <option value="RESOLVED">Resolved</option>
+                                            <option value="REJECTED">Rejected</option>
                                         </select>
                                     </div>
 

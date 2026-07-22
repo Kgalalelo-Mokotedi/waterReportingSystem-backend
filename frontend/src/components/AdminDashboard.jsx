@@ -8,7 +8,6 @@ export default function AdminDashboard({ onLogout }) {
     const [technicians, setTechnicians] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
     const [stats, setStats] = useState({ totalReports: 0, activeOutages: 0, resolvedOutages: 0, affectedAreas: 0 });
-    const [assignments, setAssignments] = useState({});
 
     const getAuthHeaders = () => {
         const token = localStorage.getItem('token');
@@ -80,7 +79,17 @@ export default function AdminDashboard({ onLogout }) {
             fetchDashboardData();
         } catch (error) {
             console.error('Failed to update report status:', error);
-            alert('Error updating status on the server.');
+            try {
+                await axios.put(`http://localhost:8081/api/status-updates`, {
+                    reportId: Number(reportId),
+                    status: newStatus,
+                    comment: `Status updated to ${newStatus} by administration/technician panel.`
+                }, getAuthHeaders());
+                alert(`Report #${reportId} status update logged successfully`);
+                fetchDashboardData();
+            } catch (err2) {
+                alert('Error updating status on the server.');
+            }
         }
     };
 
@@ -97,7 +106,6 @@ export default function AdminDashboard({ onLogout }) {
         } catch (error) {
             console.error('Failed to assign technician:', error);
             try {
-                // Fallback assignment endpoint structure
                 await axios.post(`http://localhost:8081/api/reports/${reportId}/assign/${technicianId}`, {}, getAuthHeaders());
                 alert(`Successfully assigned technician to report #${reportId}`);
                 fetchDashboardData();
@@ -149,7 +157,7 @@ export default function AdminDashboard({ onLogout }) {
                                 <th style={styles.th}>Municipality</th>
                                 <th style={styles.th}>Priority</th>
                                 <th style={styles.th}>Status</th>
-                                <th style={styles.th}>Update Status</th>
+                                <th style={styles.th}>Status Updates (Technician Actions)</th>
                                 <th style={styles.th}>Assign Technician</th>
                             </tr>
                             </thead>
@@ -168,6 +176,14 @@ export default function AdminDashboard({ onLogout }) {
                                     const refCode = report.referenceCode || `FB${repId}C55`;
                                     const currentStatus = report.status || 'REPORTED';
 
+                                    // Extract assigned technician id/name from various backend property structures
+                                    const assignedTechId = report.technicianId || report.assignedTechnicianId || report.technician?.id || '';
+
+                                    const matchedTech = technicians.find(t => String(t.id) === String(assignedTechId));
+                                    const assignedTechName = matchedTech
+                                        ? (matchedTech.name || matchedTech.fullName || `Tech #${matchedTech.id}`)
+                                        : (report.technicianName || report.assignedTechnicianName || '');
+
                                     return (
                                         <tr key={repId} style={styles.tr}>
                                             <td style={styles.td}>
@@ -180,9 +196,9 @@ export default function AdminDashboard({ onLogout }) {
                                             </td>
                                             <td style={styles.td}>{report.municipality || report.city || 'City of Johannesburg'}</td>
                                             <td style={styles.td}>
-                                                    <span style={{ fontWeight: 'bold', color: report.priority === 'HIGH' ? '#f44336' : '#faad14' }}>
-                                                        {report.priority || 'MEDIUM'}
-                                                    </span>
+                                                <span style={{ fontWeight: 'bold', color: report.priority === 'HIGH' ? '#f44336' : '#faad14' }}>
+                                                    {report.priority || 'MEDIUM'}
+                                                </span>
                                             </td>
                                             <td style={styles.td}>
                                                 <span style={styles.statusBadge}>{currentStatus}</span>
@@ -196,15 +212,15 @@ export default function AdminDashboard({ onLogout }) {
                                                     <option value="REPORTED">Reported</option>
                                                     <option value="ASSIGNED">Assigned</option>
                                                     <option value="IN_PROGRESS">In Progress</option>
-                                                    <option value="WAITING_PARTS">Waiting for Parts</option>
                                                     <option value="RESOLVED">Resolved</option>
+                                                    <option value="REJECTED">Rejected</option>
                                                 </select>
                                             </td>
                                             <td style={styles.td}>
                                                 <select
                                                     style={styles.select}
                                                     onChange={(e) => handleAssignTechnician(repId, e.target.value)}
-                                                    defaultValue=""
+                                                    value={assignedTechId || ""}
                                                 >
                                                     <option value="" disabled>Select Technician</option>
                                                     {technicians.length === 0 ? (
@@ -220,6 +236,11 @@ export default function AdminDashboard({ onLogout }) {
                                                         })
                                                     )}
                                                 </select>
+                                                {assignedTechName && (
+                                                    <div style={{ fontSize: '12px', color: '#2e7d32', marginTop: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <span>👤 Assigned to: {assignedTechName}</span>
+                                                    </div>
+                                                )}
                                             </td>
                                         </tr>
                                     );
