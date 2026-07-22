@@ -81,6 +81,7 @@ public class WaterReportController {
     }
 
 
+
     @GetMapping("/search/priority")
     public Page<WaterReportResponse> searchByPriority(
             @RequestParam Priority priority,
@@ -129,4 +130,5 @@ public class WaterReportController {
 
         return waterReportService.searchByTitle(title, page, size);
     }
+
 }
