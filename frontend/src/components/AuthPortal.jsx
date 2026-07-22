@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 export default function AuthPortal() {
     const navigate = useNavigate();
-    const [isLoginView, setIsLoginView] = useState(true);
+    const [viewMode, setViewMode] = useState('login'); // 'login' | 'register' | 'forgot' | 'reset'
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [alert, setAlert] = useState({ type: '', text: '' });
@@ -15,7 +15,9 @@ export default function AuthPortal() {
         email: '',
         password: '',
         phoneNumber: '',
-        address: ''
+        address: '',
+        resetToken: '',
+        newPassword: ''
     });
 
     const handleChange = (e) => {
@@ -41,35 +43,20 @@ export default function AuthPortal() {
         setLoading(true);
         setAlert({ type: '', text: '' });
 
-        const endpoint = isLoginView ? '/login' : '/register';
-
-        // Aligned payload matching exact property names for backend DTO
-        const payload = isLoginView
-            ? { email: formData.email, password: formData.password }
-            : {
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                email: formData.email,
-                password: formData.password,
-                phoneNumber: formData.phoneNumber,
-                address: formData.address
-            };
-
         try {
-            const response = await axios.post(`http://localhost:8081/api/auth${endpoint}`, payload, {
-                headers: { 'Content-Type': 'application/json' }
-            });
+            if (viewMode === 'login') {
+                const response = await axios.post('http://localhost:8081/api/auth/login', {
+                    email: formData.email,
+                    password: formData.password
+                }, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
 
-            const apiResponse = response.data;
-
-            if (isLoginView) {
-                // Extract JWT token from nested or direct response
+                const apiResponse = response.data;
                 const token = apiResponse.token || apiResponse.data?.token || apiResponse.data;
 
                 if (token) {
                     localStorage.setItem('token', token);
-
-                    // Decode role and redirect automatically
                     const role = getRoleFromToken(token);
 
                     if (role.includes('ADMIN') || role.includes('MUNICIPAL')) {
@@ -82,21 +69,62 @@ export default function AuthPortal() {
                 } else {
                     setAlert({ type: 'error', text: 'Login successful, but token was missing.' });
                 }
-            } else {
+            } else if (viewMode === 'register') {
+                const response = await axios.post('http://localhost:8081/api/auth/register', {
+                    firstName: formData.firstName,
+                    lastName: formData.lastName,
+                    email: formData.email,
+                    password: formData.password,
+                    phoneNumber: formData.phoneNumber,
+                    address: formData.address
+                }, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const apiResponse = response.data;
                 setAlert({
                     type: 'success',
                     text: apiResponse.message || 'Account created successfully! Please sign in.'
                 });
-                setFormData({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', address: '' });
-                setIsLoginView(true);
+                setFormData({ firstName: '', lastName: '', email: '', password: '', phoneNumber: '', address: '', resetToken: '', newPassword: '' });
+                setViewMode('login');
+            } else if (viewMode === 'forgot') {
+                const response = await axios.post('http://localhost:8081/api/auth/forgot-password', {
+                    email: formData.email
+                }, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const apiResponse = response.data;
+                setAlert({
+                    type: 'success',
+                    text: apiResponse.message || 'If the email exists, a password reset link has been generated.'
+                });
+            } else if (viewMode === 'reset') {
+                const response = await axios.post('http://localhost:8081/api/auth/reset-password', {
+                    token: formData.resetToken,
+                    newPassword: formData.newPassword
+                }, {
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const apiResponse = response.data;
+                setAlert({
+                    type: 'success',
+                    text: apiResponse.message || 'Password reset successfully.'
+                });
+                setTimeout(() => {
+                    setViewMode('login');
+                    setAlert({ type: '', text: '' });
+                }, 3000);
             }
         } catch (error) {
             console.error(error);
-            const serverMessage = error.response?.data?.message;
+            const serverMessage = error.response?.data?.message || error.response?.data;
             setAlert({
                 type: 'error',
-                text: serverMessage || (error.response?.status === 401
-                    ? 'Invalid email or password.'
+                text: typeof serverMessage === 'string' ? serverMessage : (error.response?.status === 401
+                    ? 'Invalid credentials or expired session.'
                     : 'An unexpected connection error occurred.')
             });
         } finally {
@@ -110,15 +138,15 @@ export default function AuthPortal() {
                 <div style={styles.tabGroup}>
                     <button
                         type="button"
-                        onClick={() => { setIsLoginView(true); setAlert({type:'', text:''}); setShowPassword(false); }}
-                        style={{ ...styles.tab, borderBottom: isLoginView ? '3px solid #007bff' : '3px solid transparent', color: isLoginView ? '#007bff' : '#666' }}
+                        onClick={() => { setViewMode('login'); setAlert({type:'', text:''}); setShowPassword(false); }}
+                        style={{ ...styles.tab, borderBottom: viewMode === 'login' ? '3px solid #007bff' : '3px solid transparent', color: viewMode === 'login' ? '#007bff' : '#666' }}
                     >
                         Sign In
                     </button>
                     <button
                         type="button"
-                        onClick={() => { setIsLoginView(false); setAlert({type:'', text:''}); setShowPassword(false); }}
-                        style={{ ...styles.tab, borderBottom: !isLoginView ? '3px solid #007bff' : '3px solid transparent', color: !isLoginView ? '#007bff' : '#666' }}
+                        onClick={() => { setViewMode('register'); setAlert({type:'', text:''}); setShowPassword(false); }}
+                        style={{ ...styles.tab, borderBottom: viewMode === 'register' ? '3px solid #007bff' : '3px solid transparent', color: viewMode === 'register' ? '#007bff' : '#666' }}
                     >
                         Register
                     </button>
@@ -131,7 +159,7 @@ export default function AuthPortal() {
                 )}
 
                 <form onSubmit={handleSubmit}>
-                    {!isLoginView && (
+                    {viewMode === 'register' && (
                         <div style={styles.row}>
                             <div style={{ ...styles.inputGroup, flex: 1, marginRight: '10px' }}>
                                 <label style={styles.label}>First Name</label>
@@ -160,53 +188,102 @@ export default function AuthPortal() {
                         </div>
                     )}
 
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Email Address</label>
-                        <input
-                            type="email"
-                            name="email"
-                            value={formData.email}
-                            onChange={handleChange}
-                            placeholder="resident@example.com"
-                            required
-                            style={styles.input}
-                        />
-                    </div>
-
-                    <div style={styles.inputGroup}>
-                        <label style={styles.label}>Password</label>
-                        <div style={styles.passwordWrapper}>
+                    {(viewMode === 'login' || viewMode === 'register' || viewMode === 'forgot') && (
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Email Address</label>
                             <input
-                                type={showPassword ? "text" : "password"}
+                                type="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                placeholder="resident@example.com"
+                                required
+                                style={styles.input}
+                            />
+                        </div>
+                    )}
+
+                    {viewMode === 'login' && (
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Password</label>
+                            <div style={styles.passwordWrapper}>
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    placeholder="••••••••"
+                                    required
+                                    style={styles.passwordInput}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    style={styles.iconButton}
+                                    title={showPassword ? "Hide password" : "Show password"}
+                                >
+                                    {showPassword ? 'Hide' : 'Show'}
+                                </button>
+                            </div>
+                            <div style={{ textAlign: 'right', marginTop: '6px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => { setViewMode('forgot'); setAlert({ type: '', text: '' }); }}
+                                    style={styles.linkButton}
+                                >
+                                    Forgot password?
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {viewMode === 'register' && (
+                        <div style={styles.inputGroup}>
+                            <label style={styles.label}>Password (min 8 characters)</label>
+                            <input
+                                type="password"
                                 name="password"
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="••••••••"
                                 required
-                                style={styles.passwordInput}
+                                minLength={8}
+                                style={styles.input}
                             />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                style={styles.iconButton}
-                                title={showPassword ? "Hide password" : "Show password"}
-                            >
-                                {showPassword ? (
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path>
-                                        <line x1="1" y1="1" x2="23" y2="23"></line>
-                                    </svg>
-                                ) : (
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-                                )}
-                            </button>
                         </div>
-                    </div>
+                    )}
 
-                    {!isLoginView && (
+                    {viewMode === 'reset' && (
+                        <>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>Reset Token (from email)</label>
+                                <input
+                                    type="text"
+                                    name="resetToken"
+                                    value={formData.resetToken}
+                                    onChange={handleChange}
+                                    placeholder="Paste token here"
+                                    required
+                                    style={styles.input}
+                                />
+                            </div>
+                            <div style={styles.inputGroup}>
+                                <label style={styles.label}>New Password (min 8 characters)</label>
+                                <input
+                                    type="password"
+                                    name="newPassword"
+                                    value={formData.newPassword}
+                                    onChange={handleChange}
+                                    placeholder="••••••••"
+                                    required
+                                    minLength={8}
+                                    style={styles.input}
+                                />
+                            </div>
+                        </>
+                    )}
+
+                    {viewMode === 'register' && (
                         <>
                             <div style={styles.inputGroup}>
                                 <label style={styles.label}>Phone Number</label>
@@ -237,8 +314,31 @@ export default function AuthPortal() {
                     )}
 
                     <button type="submit" disabled={loading} style={styles.submitButton}>
-                        {loading ? 'Please wait...' : isLoginView ? 'Sign In' : 'Create Account'}
+                        {loading ? 'Please wait...' : viewMode === 'login' ? 'Sign In' : viewMode === 'register' ? 'Create Account' : viewMode === 'forgot' ? 'Send Reset Token' : 'Reset Password'}
                     </button>
+
+                    {(viewMode === 'forgot' || viewMode === 'reset') && (
+                        <div style={{ textAlign: 'center', marginTop: '15px' }}>
+                            <button
+                                type="button"
+                                onClick={() => { setViewMode('login'); setAlert({ type: '', text: '' }); }}
+                                style={styles.linkButton}
+                            >
+                                ← Back to Sign In
+                            </button>
+                            {viewMode === 'forgot' && (
+                                <div style={{ marginTop: '8px' }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => { setViewMode('reset'); setAlert({ type: '', text: '' }); }}
+                                        style={styles.linkButton}
+                                    >
+                                        Already have a reset token? Enter it here
+                                    </button>
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </form>
             </div>
         </div>
@@ -330,7 +430,10 @@ const styles = {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '4px',
-        outline: 'none'
+        outline: 'none',
+        color: '#007bff',
+        fontWeight: 'bold',
+        fontSize: '12px'
     },
     submitButton: {
         width: '100%',
@@ -343,6 +446,16 @@ const styles = {
         fontWeight: 'bold',
         cursor: 'pointer',
         marginTop: '10px'
+    },
+    linkButton: {
+        background: 'none',
+        border: 'none',
+        color: '#007bff',
+        cursor: 'pointer',
+        fontSize: '13px',
+        fontWeight: '500',
+        padding: 0,
+        textDecoration: 'underline'
     },
     alert: {
         padding: '12px',

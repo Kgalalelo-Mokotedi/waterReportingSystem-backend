@@ -9,6 +9,94 @@ export default function ResidentDashboard({ onLogout }) {
     const [statusUpdates, setStatusUpdates] = useState([]);
     const [activeTab, setActiveTab] = useState('reports'); // 'reports' or 'updates'
     const [loading, setLoading] = useState(false);
+    const [expandedReportId, setExpandedReportId] = useState(null);
+
+    // State to store the logged-in user's fetched profile details from the database
+    const [currentUser, setCurrentUser] = useState({
+        id: null,
+        firstName: '',
+        lastName: '',
+        loading: true
+    });
+
+    const getAuthHeaders = () => {
+        const token = localStorage.getItem('token');
+        return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
+    };
+
+    // Helper to extract user ID from JWT token to query the DB for the exact first and last name
+    const getUserIdFromToken = () => {
+        try {
+            const token = localStorage.getItem('token');
+            if (!token || typeof token !== 'string') return null;
+
+            const parts = token.split('.');
+            if (parts.length < 2) return null;
+
+            const decodedPayload = JSON.parse(atob(parts[1]));
+            const rawId = decodedPayload.userId
+                || decodedPayload.user_id
+                || decodedPayload.id
+                || decodedPayload.sub
+                || decodedPayload.uid
+                || decodedPayload.accountId
+                || decodedPayload.residentId;
+
+            const parsedId = Number(rawId);
+            return (!isNaN(parsedId) && parsedId > 0) ? parsedId : null;
+        } catch (e) {
+            console.error('Error extracting user ID from token:', e);
+            return null;
+        }
+    };
+
+    const currentUserId = getUserIdFromToken() || 1;
+
+    // Fetch user details directly from the database endpoint
+    useEffect(() => {
+        const fetchUserProfile = async () => {
+            try {
+                // Adjust endpoint path if your backend uses a different route for resident/user details (e.g., /api/residents or /api/users)
+                const response = await axios.get(`http://localhost:8081/api/residents/${currentUserId}`, getAuthHeaders());
+                const userData = response.data;
+
+                setCurrentUser({
+                    id: userData.id || currentUserId,
+                    firstName: userData.firstName || userData.first_name || '',
+                    lastName: userData.lastName || userData.last_name || '',
+                    loading: false
+                });
+            } catch (err) {
+                console.error("Failed to fetch user profile from DB, falling back to token payload or defaults:", err);
+                // Fallback extraction from token if DB endpoint fails or differs
+                try {
+                    const token = localStorage.getItem('token');
+                    if (token) {
+                        const decoded = JSON.parse(atob(token.split('.')[1]));
+                        setCurrentUser({
+                            id: currentUserId,
+                            firstName: decoded.firstName || decoded.givenName || 'Resident',
+                            lastName: decoded.lastName || decoded.familyName || '',
+                            loading: false
+                        });
+                        return;
+                    }
+                } catch {
+                    // ignore fallback error
+                }
+                setCurrentUser({
+                    id: currentUserId,
+                    firstName: 'Resident',
+                    lastName: '',
+                    loading: false
+                });
+            }
+        };
+
+        fetchUserProfile();
+    }, [currentUserId]);
+
+    const fullName = [currentUser.firstName, currentUser.lastName].filter(Boolean).join(' ') || 'Resident';
 
     // Form state pre-populated with initial default values for easy testing
     const [formData, setFormData] = useState({
@@ -22,14 +110,9 @@ export default function ResidentDashboard({ onLogout }) {
         wardNumber: '12',
         municipality: 'City of Johannesburg',
         province: 'Gauteng',
-        residentId: 1,
+        residentId: currentUserId,
         categoryId: 1
     });
-
-    const getAuthHeaders = () => {
-        const token = localStorage.getItem('token');
-        return token ? { headers: { Authorization: `Bearer ${token}` } } : {};
-    };
 
     const getStatusBadgeStyle = (status) => {
         const baseStyle = {
@@ -74,24 +157,31 @@ export default function ResidentDashboard({ onLogout }) {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const res = await axios.get('http://localhost:8081/api/reports', getAuthHeaders());
-                const reportList = extractArrayData(res.data);
+                let reportList = [];
+                const activeResidentId = currentUserId || Number(formData.residentId) || 1;
+
+                // Try fetching specifically for this resident, else fallback to filtering global list
+                try {
+                    const resResident = await axios.get(`http://localhost:8081/api/reports/resident/${activeResidentId}`, getAuthHeaders());
+                    reportList = extractArrayData(resResident.data);
+                } catch {
+                    const resAll = await axios.get('http://localhost:8081/api/reports', getAuthHeaders());
+                    const allReports = extractArrayData(resAll.data);
+                    reportList = allReports.filter(r =>
+                        Number(r.residentId) === activeResidentId ||
+                        Number(r.resident?.id) === activeResidentId ||
+                        !r.residentId // fallback if field is missing
+                    );
+                }
 
                 setReports(reportList);
 
                 const active = reportList.filter(r => ['REPORTED', 'OPEN', 'IN_PROGRESS'].includes(r.status?.toUpperCase())).length;
                 const resolved = reportList.filter(r => ['RESOLVED', 'CLOSED'].includes(r.status?.toUpperCase())).length;
 
-                // Collect updates: check global endpoint first, then aggregate status updates per report if empty
+                // Collect updates for these reports
                 let updatesList = [];
-                try {
-                    const updatesRes = await axios.get('http://localhost:8081/api/status-updates', getAuthHeaders());
-                    updatesList = extractArrayData(updatesRes.data);
-                } catch {
-                    // ignore
-                }
-
-                if (updatesList.length === 0 && reportList.length > 0) {
+                if (reportList.length > 0) {
                     for (const rep of reportList) {
                         const repId = rep.reportId || rep.id;
                         try {
@@ -104,7 +194,6 @@ export default function ResidentDashboard({ onLogout }) {
                     }
                 }
 
-                // Fallback check: if backend returns 0 status logs, fall back to showing reports as initial activity logs
                 if (updatesList.length === 0 && reportList.length > 0) {
                     updatesList = reportList.map(r => ({
                         id: r.id,
@@ -129,7 +218,7 @@ export default function ResidentDashboard({ onLogout }) {
             }
         };
         fetchData();
-    }, []);
+    }, [currentUserId, formData.residentId]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -165,7 +254,7 @@ export default function ResidentDashboard({ onLogout }) {
             wardNumber: formData.wardNumber.trim(),
             municipality: formData.municipality.trim(),
             province: formData.province.trim(),
-            residentId: Number(formData.residentId) || 1,
+            residentId: currentUserId || Number(formData.residentId) || 1,
             categoryId: Number(formData.categoryId) || 1
         };
 
@@ -194,22 +283,18 @@ export default function ResidentDashboard({ onLogout }) {
                     updates: updatedUpdates.length
                 }));
 
-                setFormData({
+                setFormData(prev => ({
+                    ...prev,
                     title: '',
                     description: '',
-                    photoUrl: 'https://example.com/photo.jpg',
-                    priority: 'HIGH',
-                    status: 'REPORTED',
                     streetName: '',
                     suburb: '',
                     wardNumber: '',
                     municipality: '',
-                    province: '',
-                    residentId: 1,
-                    categoryId: 1
-                });
+                    province: ''
+                }));
 
-                alert(`Report submitted successfully! Ref #${addedReport.referenceNumber || addedReport.id}`);
+                alert(`Report successfully submitted! Ref #${addedReport.referenceNumber || addedReport.id}`);
             }
         } catch (err) {
             console.error("Submission failed:", err.response?.data || err.message);
@@ -224,12 +309,18 @@ export default function ResidentDashboard({ onLogout }) {
         }
     };
 
+    const toggleExpandReport = (reportId) => {
+        setExpandedReportId(prevId => prevId === reportId ? null : reportId);
+    };
+
     return (
         <div style={styles.container}>
-            {/* Navigation Header */}
+            {/* Navigation Header displaying the Database-fetched First and Last Name */}
             <header style={styles.header}>
                 <div style={styles.logo}>💧 WaterOutage Portal</div>
-                <div style={styles.userBadge}>👤 Resident View</div>
+                <div style={styles.userBadge}>
+                    👤 {currentUser.loading ? 'Loading user...' : `${fullName} (ID: ${currentUser.id})`}
+                </div>
                 <button onClick={handleLogout} style={styles.logoutBtn}>Logout</button>
             </header>
 
@@ -299,45 +390,68 @@ export default function ResidentDashboard({ onLogout }) {
                         </div>
 
                         {activeTab === 'reports' ? (
-                            <table style={styles.table}>
-                                <thead>
-                                <tr style={styles.tableHeaderRow}>
-                                    <th style={styles.th}>Ref / ID</th>
-                                    <th style={styles.th}>Title</th>
-                                    <th style={styles.th}>Status</th>
-                                    <th style={styles.th}>Date</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                {reports.length === 0 ? (
-                                    <tr>
-                                        <td colSpan="4" style={{ textAlign: 'center', padding: '20px', color: '#8c8c8c' }}>
-                                            No reports found
-                                        </td>
-                                    </tr>
-                                ) : (
-                                    reports.map((rpt) => (
-                                        <tr key={rpt.id} style={styles.tableRow}>
-                                            <td style={styles.td}>
-                                                <strong>{rpt.referenceNumber ? `#${rpt.referenceNumber}` : `RPT-${rpt.id}`}</strong>
-                                            </td>
-                                            <td style={styles.td}>
-                                                <strong>{rpt.title || 'Water Outage'}</strong>
-                                                <div style={{ fontSize: '12px', color: '#666' }}>
-                                                    {rpt.streetName ? `${rpt.streetName}, ${rpt.suburb}` : rpt.suburb || ''}
+                            <div>
+                                <p style={{ fontSize: '12px', color: '#8c8c8c', marginBottom: '12px' }}>
+                                    💡 Click on any report row to view full incident details and description.
+                                </p>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {reports.length === 0 ? (
+                                        <div style={{ textAlign: 'center', padding: '20px', color: '#8c8c8c' }}>
+                                            No reports found for Resident ID {currentUserId}
+                                        </div>
+                                    ) : (
+                                        reports.map((rpt) => {
+                                            const rptId = rpt.referenceNumber || rpt.id;
+                                            const isExpanded = expandedReportId === rpt.id;
+                                            return (
+                                                <div
+                                                    key={rpt.id}
+                                                    onClick={() => toggleExpandReport(rpt.id)}
+                                                    style={{
+                                                        ...styles.reportItemBox,
+                                                        borderColor: isExpanded ? '#1890ff' : '#f0f0f0',
+                                                        backgroundColor: isExpanded ? '#f6ffed' : '#fafafa'
+                                                    }}
+                                                >
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                        <div>
+                                                            <strong>#{rptId}</strong> — <span style={{ color: '#262626', fontWeight: '600' }}>{rpt.title || 'Water Outage'}</span>
+                                                            <div style={{ fontSize: '12px', color: '#666', marginTop: '2px' }}>
+                                                                {rpt.streetName ? `${rpt.streetName}, ${rpt.suburb}` : rpt.suburb || 'Location N/A'}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                                            <span style={getStatusBadgeStyle(rpt.status)}>{rpt.status || 'REPORTED'}</span>
+                                                            <span style={{ fontSize: '12px', color: '#8c8c8c' }}>
+                                                                {rpt.createdAt ? new Date(rpt.createdAt).toLocaleDateString() : 'Recent'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Expanded Full Report Details */}
+                                                    {isExpanded && (
+                                                        <div style={styles.expandedDetails}>
+                                                            <h4 style={{ margin: '0 0 8px 0', color: '#1890ff', fontSize: '14px' }}>Incident Report Summary</h4>
+                                                            <p style={styles.detailRow}><strong>Description:</strong> {rpt.description || 'No description provided.'}</p>
+                                                            <div style={styles.detailGrid}>
+                                                                <p style={styles.detailRow}><strong>Priority:</strong> {rpt.priority || 'MEDIUM'}</p>
+                                                                <p style={styles.detailRow}><strong>Category ID:</strong> {rpt.categoryId || 'N/A'}</p>
+                                                                <p style={styles.detailRow}><strong>Ward Number:</strong> {rpt.wardNumber || 'N/A'}</p>
+                                                                <p style={styles.detailRow}><strong>Municipality:</strong> {rpt.municipality || 'N/A'}</p>
+                                                                <p style={styles.detailRow}><strong>Province:</strong> {rpt.province || 'N/A'}</p>
+                                                                <p style={styles.detailRow}><strong>Submitted At:</strong> {rpt.createdAt ? new Date(rpt.createdAt).toLocaleString() : 'N/A'}</p>
+                                                            </div>
+                                                            {rpt.photoUrl && rpt.photoUrl !== 'https://example.com/photo.jpg' && (
+                                                                <p style={styles.detailRow}><strong>Photo URL:</strong> <a href={rpt.photoUrl} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>{rpt.photoUrl}</a></p>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                            </td>
-                                            <td style={styles.td}>
-                                                <span style={getStatusBadgeStyle(rpt.status)}>{rpt.status || 'REPORTED'}</span>
-                                            </td>
-                                            <td style={styles.td}>
-                                                {rpt.createdAt ? new Date(rpt.createdAt).toLocaleDateString() : 'Recent'}
-                                            </td>
-                                        </tr>
-                                    ))
-                                )}
-                                </tbody>
-                            </table>
+                                            );
+                                        })
+                                    )}
+                                </div>
+                            </div>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
                                 {statusUpdates.length === 0 ? (
@@ -502,7 +616,7 @@ export default function ResidentDashboard({ onLogout }) {
                                         name="residentId"
                                         required
                                         style={styles.input}
-                                        value={formData.residentId}
+                                        value={currentUserId}
                                         onChange={handleChange}
                                     />
                                 </div>
@@ -558,14 +672,57 @@ const styles = {
     grid2Col: { display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '24px' },
     grid2Row: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' },
     panel: { backgroundColor: '#ffffff', padding: '24px', borderRadius: '8px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' },
-    table: { width: '100%', borderCollapse: 'collapse', marginTop: '16px' },
-    tableHeaderRow: { borderBottom: '2px solid #f0f0f0', textAlign: 'left' },
-    th: { padding: '12px 8px', color: '#595959', fontSize: '13px', fontWeight: 'bold' },
-    tableRow: { borderBottom: '1px solid #f0f0f0' },
-    td: { padding: '12px 8px', fontSize: '14px' },
-    updateCard: { backgroundColor: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '6px', padding: '12px' },
-    inputGroup: { marginBottom: '12px' },
-    label: { display: 'block', marginBottom: '4px', fontSize: '12px', fontWeight: 'bold', color: '#434343' },
-    input: { width: '100%', padding: '8px 10px', fontSize: '13px', borderRadius: '4px', border: '1px solid #d9d9d9', boxSizing: 'border-box' },
-    primaryBtn: { width: '100%', padding: '12px', backgroundColor: '#1890ff', color: '#fff', border: 'none', borderRadius: '4px', fontSize: '14px', fontWeight: 'bold', cursor: 'pointer', marginTop: '8px' }
+    inputGroup: { marginBottom: '16px' },
+    label: { display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: '600', color: '#4e5d6c' },
+    input: {
+        width: '100%',
+        padding: '10px 12px',
+        fontSize: '14px',
+        borderRadius: '4px',
+        border: '1px solid #ccd4db',
+        boxSizing: 'border-box',
+        outline: 'none',
+        color: '#333333',
+        backgroundColor: '#ffffff'
+    },
+    primaryBtn: {
+        width: '100%',
+        padding: '12px',
+        backgroundColor: '#1890ff',
+        color: '#ffffff',
+        border: 'none',
+        borderRadius: '4px',
+        fontSize: '15px',
+        fontWeight: 'bold',
+        cursor: 'pointer',
+        marginTop: '10px'
+    },
+    reportItemBox: {
+        border: '1px solid #f0f0f0',
+        borderRadius: '6px',
+        padding: '12px 16px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        backgroundColor: '#fafafa'
+    },
+    expandedDetails: {
+        marginTop: '12px',
+        paddingTop: '12px',
+        borderTop: '1px solid #e8e8e8',
+        fontSize: '13px',
+        color: '#262626'
+    },
+    detailGrid: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap: '6px',
+        marginTop: '8px'
+    },
+    detailRow: { margin: '4px 0' },
+    updateCard: {
+        padding: '12px',
+        borderRadius: '6px',
+        backgroundColor: '#fafafa',
+        border: '1px solid #f0f0f0'
+    }
 };
