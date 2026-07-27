@@ -7,6 +7,8 @@ export default function ResidentDashboard() {
     const [loading, setLoading] = useState(true);
 
     const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+
     const api = axios.create({
         baseURL: "http://localhost:8081",
         headers: { Authorization: `Bearer ${token}` }
@@ -15,21 +17,35 @@ export default function ResidentDashboard() {
     useEffect(() => {
         const fetchReports = async () => {
             try {
+                // Fetch all reports (or a specific endpoint if your backend provides /api/reports/resident/{id})
                 const response = await api.get("/api/reports");
                 const data = response.data.data ?? response.data?.content ?? response.data;
-                setReports(Array.isArray(data) ? data : []);
+                const allReports = Array.isArray(data) ? data : [];
+
+                // Filter reports to only show those belonging to the logged-in user ID
+                // Checking both residentId and resident?.id properties for robustness
+                const userReports = allReports.filter(r => {
+                    const rId = r.residentId ?? r.resident?.id ?? r.userId;
+                    return String(rId) === String(userId);
+                });
+
+                setReports(userReports);
             } catch (err) {
                 console.error("Failed to load resident reports:", err);
             } finally {
                 setLoading(false);
             }
         };
-        fetchReports();
-    }, []);
+
+        if (userId) {
+            fetchReports();
+        } else {
+            setLoading(false);
+        }
+    }, [userId]);
 
     const total = reports.length;
-    // Updated filters to match statuses like PENDING, SUBMITTED, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
-    const pending = reports.filter(r => r.status === "PENDING" || r.status === "SUBMITTED").length;
+    const pending = reports.filter(r => r.status === "PENDING" || r.status === "SUBMITTED" || r.status === "REPORTED").length;
     const inProgress = reports.filter(r => r.status === "IN_PROGRESS" || r.status === "ASSIGNED").length;
     const resolved = reports.filter(r => r.status === "RESOLVED" || r.status === "CLOSED").length;
 
