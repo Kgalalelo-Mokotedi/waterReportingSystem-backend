@@ -93,7 +93,7 @@ export default function UpdateStatus() {
         try {
             await api.post('/api/status-updates', payload);
 
-            setAlert({ type: 'success', text: 'Status update logged successfully!' });
+            setAlert({ type: 'success', text: 'Status update logged and updated globally successfully!' });
             setTimeout(() => {
                 navigate(-1);
             }, 1500);

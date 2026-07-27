@@ -172,10 +172,23 @@ export default function AdminDashboard() {
     };
 
     const manageReports = () => navigate("/admin/reports");
+
     const assignTechnician = (report) => {
-        navigate(`/admin/assignments/${report.id}`);
+        if (report && report.id) {
+            navigate(`/admin/assignments/${report.id}`);
+        } else {
+            alert("Please select a specific report from the table to assign a technician.");
+        }
     };
-    const openAssignments = () => navigate("/admin/assignments");
+
+    const openAssignments = (report) => {
+        if (report && report.id) {
+            navigate(`/admin/assignments/${report.id}`);
+        } else {
+            navigate("/admin/reports");
+        }
+    };
+
     const manageTechnicians = () => navigate("/admin/technicians");
     const manageCategories = () => navigate("/admin/categories");
     const viewStatistics = () => navigate("/admin/statistics");
