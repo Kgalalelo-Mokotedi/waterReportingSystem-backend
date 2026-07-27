@@ -44,12 +44,14 @@ const AssignTechnician = () => {
     };
 
     // ===========================
-    // LOAD AVAILABLE TECHNICIANS
+    // LOAD ALL REGISTERED TECHNICIANS
     // ===========================
     const loadTechnicians = async () => {
         try {
-            const response = await api.get("/api/technicians/available");
-            setTechnicians(response.data.data ?? response.data);
+            // Changed from /api/technicians/available to /api/technicians to list all registered users
+            const response = await api.get("/api/technicians");
+            const data = response.data.data ?? response.data;
+            setTechnicians(Array.isArray(data) ? data : []);
         } catch (error) {
             console.error(error);
             setMessage("Unable to load technicians");
@@ -119,10 +121,10 @@ const AssignTechnician = () => {
                             <form onSubmit={handleAssign} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
-                                        Select Available Technician
+                                        Select Technician
                                     </label>
                                     <select
-                                        className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500"
+                                        className="w-full border border-gray-300 rounded-md p-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
                                         value={selectedTechnician}
                                         onChange={(e) => setSelectedTechnician(e.target.value)}
                                         required
@@ -130,7 +132,7 @@ const AssignTechnician = () => {
                                         <option value="">-- Choose Technician --</option>
                                         {technicians.map((tech) => (
                                             <option key={tech.id} value={tech.id}>
-                                                {tech.name || tech.fullName || `Technician #${tech.id}`} ({tech.email})
+                                                {tech.name || tech.fullName || tech.username || `Technician #${tech.id}`} {tech.email ? `(${tech.email})` : ""}
                                             </option>
                                         ))}
                                     </select>
@@ -153,7 +155,7 @@ const AssignTechnician = () => {
                                     <button
                                         type="button"
                                         onClick={() => navigate("/admin/reports")}
-                                        className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-150"
+                                        className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100"
                                     >
                                         Cancel
                                     </button>

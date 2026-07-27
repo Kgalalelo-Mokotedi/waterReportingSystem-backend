@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
@@ -24,6 +24,7 @@ export default function AdminDashboard() {
     const [reports, setReports] = useState([]);
     const [loadingReports, setLoadingReports] = useState(false);
     const [categories, setCategories] = useState([]);
+    const [technicians, setTechnicians] = useState([]);
     const navigate = useNavigate();
     const [updates, setUpdates] = useState([]);
     const [loadingUpdates, setLoadingUpdates] = useState(false);
@@ -33,15 +34,6 @@ export default function AdminDashboard() {
     const [totalPages, setTotalPages] = useState(0);
     const [totalElements, setTotalElements] = useState(0);
 
-    const [stats, setStats] = useState({
-        totalReports: 0,
-        pendingReports: 0,
-        inProgressReports: 0,
-        resolvedReports: 0,
-        availableTechnicians: 0,
-        assignedTechnicians: 0
-    });
-
     const token = localStorage.getItem("token");
     const api = axios.create({
         baseURL: "http://localhost:8081",
@@ -49,21 +41,43 @@ export default function AdminDashboard() {
     });
 
     useEffect(() => {
-        loadStats();
         loadCategories();
         loadRecentUpdates();
+        loadTechnicians();
     }, []);
 
     useEffect(() => {
         loadReports();
     }, [page, search, status, priority, category, municipality, suburb]);
 
-    const loadStats = async () => {
+    // Compute stats dynamically from live records to keep metric cards in sync
+    const stats = useMemo(() => {
+        const totalReports = totalElements || reports.length;
+
+        const pendingReports = reports.filter(r => r.status === "REPORTED" || r.status === "PENDING").length;
+        const inProgressReports = reports.filter(r => r.status === "IN_PROGRESS" || r.status === "ASSIGNED").length;
+        const resolvedReports = reports.filter(r => r.status === "RESOLVED" || r.status === "CLOSED").length;
+
+        const availableTechnicians = technicians.filter(t => t.available || t.status === "AVAILABLE" || !t.busy).length;
+        const assignedTechnicians = technicians.filter(t => t.busy || t.status === "ASSIGNED" || t.status === "BUSY").length;
+
+        return {
+            totalReports,
+            pendingReports,
+            inProgressReports,
+            resolvedReports,
+            availableTechnicians,
+            assignedTechnicians
+        };
+    }, [reports, totalElements, technicians]);
+
+    const loadTechnicians = async () => {
         try {
-            const response = await api.get("/api/dashboard/stats");
-            setStats(response.data.data ?? response.data);
+            const response = await api.get("/api/technicians");
+            const data = response.data.data ?? response.data;
+            setTechnicians(Array.isArray(data) ? data : []);
         } catch (error) {
-            console.error("Failed to load dashboard statistics", error);
+            console.error("Failed to load technicians for stats", error);
         }
     };
 
@@ -80,7 +94,6 @@ export default function AdminDashboard() {
         try {
             setLoadingReports(true);
 
-            // Determine if we should use a specific search endpoint or the main paginated list
             let endpoint = "/api/reports";
             let params = { page, size, sortBy: "createdAt" };
 
@@ -213,7 +226,8 @@ export default function AdminDashboard() {
 
                     <RecentUpdates
                         updates={updates}
-                        loading={loadingUpdates}
+                        reports={reports}
+                        loading={loadingUpdates || loadingReports}
                     />
 
                     <Pagination

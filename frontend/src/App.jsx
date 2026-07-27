@@ -27,6 +27,7 @@ import ReportDetails from './components/admin/ReportDetails';
 import AssignTechnician from './components/admin/AssignTechnician';
 import TechnicianManagement from './components/admin/TechnicianManagement';
 import CategoriesManagement from './components/admin/CategoriesManagement';
+import AdminProfile from "./components/admin/AdminProfile";
 
 /**
  * Helper to extract and decode the role string from the stored JWT token.
@@ -177,6 +178,14 @@ export default function App() {
                     }
                 />
 
+                <Route
+                    path="/admin/profile"
+                    element={
+                        <ProtectedRoute allowedRoles={['ADMIN', 'MUNICIPAL']}>
+                            <AdminProfile />
+                        </ProtectedRoute>
+                    }
+                />
                 <Route
                     path="/admin/categories"
                     element={

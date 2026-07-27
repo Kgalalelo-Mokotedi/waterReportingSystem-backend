@@ -1,15 +1,14 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { Shield, Users, FileText, Clock, Wrench, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Shield, Users, Wrench, FileText, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
 
 export default function AdminProfile() {
     const [stats, setStats] = useState(null);
     const [technicians, setTechnicians] = useState([]);
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
 
     const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId") || 1;
 
     const api = axios.create({
         baseURL: "http://localhost:8081/api",
@@ -40,20 +39,12 @@ export default function AdminProfile() {
     }, []);
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto p-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Shield className="text-blue-600" size={28} /> Admin Control & Profile
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-1">System overview, municipal performance metrics, and staff management.</p>
-                </div>
-                <button
-                    onClick={() => navigate("/admin")}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition"
-                >
-                    Back to Admin Dashboard
-                </button>
+        <div className="space-y-6 max-w-5xl mx-auto">
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+                    <Shield className="text-blue-600" size={28} /> Admin Control & Profile
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">System overview, municipal performance metrics, and staff management.</p>
             </div>
 
             {/* Admin Overview Cards */}
@@ -85,17 +76,9 @@ export default function AdminProfile() {
 
             {/* Technicians List & Assignment Overview */}
             <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <Wrench size={20} className="text-blue-600" /> Active Field Technicians
-                    </h2>
-                    <button
-                        onClick={() => navigate("/admin/technicians")}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center gap-1"
-                    >
-                        Manage Technicians <ArrowRight size={16} />
-                    </button>
-                </div>
+                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+                    <Wrench size={20} className="text-blue-600" /> Active Field Technicians
+                </h2>
 
                 {loading ? (
                     <p className="text-gray-500">Loading technicians...</p>
