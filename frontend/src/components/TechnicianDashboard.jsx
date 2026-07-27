@@ -478,3 +478,4 @@ const styles = {
     actionCancelBtn: { backgroundColor: '#ff4d4f', color: '#fff', border: 'none', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px' },
     historyCard: { backgroundColor: '#fafafa', border: '1px solid #f0f0f0', borderRadius: '4px', padding: '10px', marginBottom: '8px' }
 };
+
