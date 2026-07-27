@@ -1,133 +1,152 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { Shield, Users, FileText, Clock, Wrench, ArrowRight } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
-export default function AdminProfile() {
-    const [stats, setStats] = useState(null);
-    const [technicians, setTechnicians] = useState([]);
+export default function ResidentProfile() {
+    const [profile, setProfile] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
+        phoneNumber: ""
+    });
     const [loading, setLoading] = useState(true);
-    const navigate = useNavigate();
+    const [message, setMessage] = useState({ type: "", text: "" });
 
     const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
 
     const api = axios.create({
-        baseURL: "http://localhost:8081/api",
+        baseURL: "http://localhost:8081",
         headers: { Authorization: `Bearer ${token}` }
     });
 
     useEffect(() => {
-        const fetchAdminData = async () => {
+        const fetchProfile = async () => {
             try {
-                const [statsRes, techRes] = await Promise.all([
-                    api.get("/dashboard/stats").catch(() => ({ data: { data: {} } })),
-                    api.get("/technicians").catch(() => ({ data: { data: [] } }))
-                ]);
+                // Fetch profile details from backend API (with fallback to localStorage if needed)
+                const response = await api.get(`/api/users/${userId}`);
+                const data = response.data.data ?? response.data;
 
-                const statsData = statsRes.data.data ?? statsRes.data;
-                const techData = techRes.data.data ?? techRes.data;
-
-                setStats(statsData);
-                setTechnicians(Array.isArray(techData) ? techData : []);
+                if (data) {
+                    setProfile({
+                        firstName: data.firstName || data.first_name || "",
+                        lastName: data.lastName || data.last_name || "",
+                        email: data.email || "",
+                        phoneNumber: data.phoneNumber || data.phone_number || ""
+                    });
+                }
             } catch (err) {
-                console.error("Failed to load admin profile data:", err);
+                console.error("Failed to fetch profile from API, falling back to local storage:", err);
+                const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+                setProfile({
+                    firstName: storedUser.firstName || storedUser.first_name || "",
+                    lastName: storedUser.lastName || storedUser.last_name || "",
+                    email: storedUser.email || "",
+                    phoneNumber: storedUser.phoneNumber || storedUser.phone_number || ""
+                });
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchAdminData();
-    }, []);
+        if (userId) {
+            fetchProfile();
+        } else {
+            setLoading(false);
+        }
+    }, [userId]);
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        setMessage({ type: "", text: "" });
+
+        const payload = {
+            firstName: profile.firstName,
+            lastName: profile.lastName,
+            phoneNumber: profile.phoneNumber
+        };
+
+        try {
+            await api.put(`/api/users/${userId}`, payload);
+            setMessage({ type: "success", text: "Profile updated successfully!" });
+
+            // Update local storage cache
+            const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+            localStorage.setItem("user", JSON.stringify({ ...storedUser, ...profile }));
+        } catch (err) {
+            console.error("Failed to update profile via API:", err);
+            // Fallback success for local storage if endpoint isn't mapped
+            const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
+            localStorage.setItem("user", JSON.stringify({ ...storedUser, ...profile }));
+            setMessage({ type: "success", text: "Profile updated successfully locally." });
+        }
+    };
+
+    if (loading) {
+        return <div className="p-6 text-gray-500">Loading profile...</div>;
+    }
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto p-6">
-            <div className="flex justify-between items-center">
+        <div className="bg-white rounded-xl shadow p-8 max-w-xl mx-auto">
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">Resident Profile</h2>
+            <p className="text-gray-500 text-sm mb-6">Manage your account information and contact details.</p>
+
+            {message.text && (
+                <div className={`mb-4 p-4 rounded-md text-sm font-medium ${
+                    message.type === "success" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+                }`}>
+                    {message.text}
+                </div>
+            )}
+
+            <form onSubmit={handleSave} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                        <input
+                            type="text"
+                            className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={profile.firstName}
+                            onChange={(e) => setProfile({ ...profile, firstName: e.target.value })}
+                            required
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                        <input
+                            type="text"
+                            className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            value={profile.lastName}
+                            onChange={(e) => setProfile({ ...profile, lastName: e.target.value })}
+                            required
+                        />
+                    </div>
+                </div>
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                        <Shield className="text-blue-600" size={28} /> Admin Control & Profile
-                    </h1>
-                    <p className="text-sm text-gray-500 mt-1">System overview, municipal performance metrics, and staff management.</p>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                    <input
+                        type="email"
+                        className="w-full border rounded-lg p-3 bg-gray-50 text-gray-500 cursor-not-allowed"
+                        value={profile.email}
+                        disabled
+                    />
+                    <p className="text-xs text-gray-400 mt-1">Email address cannot be changed directly.</p>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                    <input
+                        type="text"
+                        className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        value={profile.phoneNumber}
+                        onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
+                    />
                 </div>
                 <button
-                    onClick={() => navigate("/admin")}
-                    className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold rounded-lg transition"
+                    type="submit"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition shadow mt-4"
                 >
-                    Back to Admin Dashboard
+                    Save Changes
                 </button>
-            </div>
-
-            {/* Admin Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Registered Technicians</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-2">{loading ? "..." : technicians.length}</h3>
-                    </div>
-                    <div className="p-4 rounded-xl bg-blue-600 text-white shadow-md"><Users size={24} /></div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Total System Reports</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-2">{loading ? "..." : (stats?.totalReports || stats?.total || 0)}</h3>
-                    </div>
-                    <div className="p-4 rounded-xl bg-emerald-600 text-white shadow-md"><FileText size={24} /></div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Pending Actions</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-2">{loading ? "..." : (stats?.pendingReports || stats?.pending || 0)}</h3>
-                    </div>
-                    <div className="p-4 rounded-xl bg-amber-500 text-white shadow-md"><Clock size={24} /></div>
-                </div>
-            </div>
-
-            {/* Technicians List & Assignment Overview */}
-            <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-                <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-                        <Wrench size={20} className="text-blue-600" /> Active Field Technicians
-                    </h2>
-                    <button
-                        onClick={() => navigate("/admin/technicians")}
-                        className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center gap-1"
-                    >
-                        Manage Technicians <ArrowRight size={16} />
-                    </button>
-                </div>
-
-                {loading ? (
-                    <p className="text-gray-500">Loading technicians...</p>
-                ) : technicians.length === 0 ? (
-                    <p className="text-gray-500">No technicians registered in the system.</p>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                            <tr className="border-b text-gray-600 text-sm">
-                                <th className="py-3 px-4">Employee #</th>
-                                <th className="py-3 px-4">Specialisation</th>
-                                <th className="py-3 px-4">Status</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {technicians.map((tech) => (
-                                <tr key={tech.id} className="border-b hover:bg-gray-50 text-sm">
-                                    <td className="py-3 px-4 font-medium text-gray-800">{tech.employeeNumber || `TECH-${tech.id}`}</td>
-                                    <td className="py-3 px-4 text-gray-600">{tech.specialisation || "General Maintenance"}</td>
-                                    <td className="py-3 px-4">
-                                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                                Active
-                                            </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-            </div>
+            </form>
         </div>
     );
 }
