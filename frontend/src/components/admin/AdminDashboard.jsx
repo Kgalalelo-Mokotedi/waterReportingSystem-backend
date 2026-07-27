@@ -135,11 +135,31 @@ export default function AdminDashboard() {
     const loadRecentUpdates = async () => {
         try {
             setLoadingUpdates(true);
+
+            // Pull recent activity/status updates from DB audit logs or synthesize from reports
             const response = await api.get("/api/status-updates");
             const data = response.data.data ?? response.data;
-            setUpdates(Array.isArray(data) ? data : []);
+
+            if (Array.isArray(data) && data.length > 0) {
+                setUpdates(data);
+            } else {
+                const reportsRes = await api.get("/api/reports", { params: { page: 0, size: 5, sortBy: "createdAt" } });
+                const reportsData = reportsRes.data.content || reportsRes.data.data || reportsRes.data;
+
+                if (Array.isArray(reportsData)) {
+                    const synthesizedUpdates = reportsData.map(rep => ({
+                        id: rep.id,
+                        newStatus: rep.status,
+                        comment: `Report "${rep.title}" status is currently ${rep.status}`,
+                        createdAt: rep.createdAt || new Date().toISOString(),
+                        reportTitle: rep.title
+                    }));
+                    setUpdates(synthesizedUpdates);
+                }
+            }
         } catch (error) {
-            console.error("Failed to load recent updates", error);
+            console.error("Failed to load recent updates from database", error);
+            setUpdates([]);
         } finally {
             setLoadingUpdates(false);
         }
@@ -168,7 +188,7 @@ export default function AdminDashboard() {
     };
 
     const updateStatus = (report) => {
-        console.log(report);
+        navigate(`/admin/reports/edit/${report.id}`);
     };
 
     const manageReports = () => navigate("/admin/reports");

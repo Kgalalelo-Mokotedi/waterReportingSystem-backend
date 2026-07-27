@@ -77,7 +77,7 @@ export default function Sidebar() {
         {
             title: "Assignments",
             icon: <UserCheck size={20} />,
-            path: "/admin/assignments"
+            path: "/admin/assignments/1"
         },
         {
             title: "Technicians",
