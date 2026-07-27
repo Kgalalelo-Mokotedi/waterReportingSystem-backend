@@ -27,7 +27,8 @@ public class IssueCategory {
     private String description;
 
     @Column(nullable = false)
-    private boolean active;
+    @Builder.Default
+    private boolean active = true;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { ClipboardList, Clock, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Wrench, Clock, AlertCircle, CheckCircle2, ArrowRight } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-export default function ResidentDashboard() {
+export default function TechnicianDashboard() {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     const token = localStorage.getItem("token");
     const api = axios.create({
@@ -19,7 +21,7 @@ export default function ResidentDashboard() {
                 const data = response.data.data ?? response.data?.content ?? response.data;
                 setReports(Array.isArray(data) ? data : []);
             } catch (err) {
-                console.error("Failed to load resident reports:", err);
+                console.error("Failed to load technician reports:", err);
             } finally {
                 setLoading(false);
             }
@@ -28,20 +30,24 @@ export default function ResidentDashboard() {
     }, []);
 
     const total = reports.length;
-    // Updated filters to match statuses like PENDING, SUBMITTED, ASSIGNED, IN_PROGRESS, RESOLVED, CLOSED, REJECTED
     const pending = reports.filter(r => r.status === "PENDING" || r.status === "SUBMITTED").length;
     const inProgress = reports.filter(r => r.status === "IN_PROGRESS" || r.status === "ASSIGNED").length;
     const resolved = reports.filter(r => r.status === "RESOLVED" || r.status === "CLOSED").length;
 
     return (
         <div className="space-y-6">
+            <div>
+                <h1 className="text-2xl font-bold text-gray-800">Technician Dashboard</h1>
+                <p className="text-sm text-gray-500 mt-1">Overview of municipal maintenance tasks and field reports.</p>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-medium text-gray-500">Total Submitted</p>
+                        <p className="text-sm font-medium text-gray-500">Total Reports</p>
                         <h3 className="text-3xl font-bold text-gray-800 mt-2">{loading ? "..." : total}</h3>
                     </div>
-                    <div className="p-4 rounded-xl bg-blue-600 text-white shadow-md"><ClipboardList size={24} /></div>
+                    <div className="p-4 rounded-xl bg-blue-600 text-white shadow-md"><Wrench size={24} /></div>
                 </div>
                 <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
                     <div>
@@ -67,11 +73,11 @@ export default function ResidentDashboard() {
             </div>
 
             <div className="bg-white rounded-xl shadow p-6">
-                <h2 className="text-xl font-bold text-gray-800 mb-4">Recent Water Outage Reports</h2>
+                <h2 className="text-xl font-bold text-gray-800 mb-4">Active Field Assignments</h2>
                 {loading ? (
                     <p className="text-gray-500">Loading reports...</p>
                 ) : reports.length === 0 ? (
-                    <p className="text-gray-500">You have not submitted any reports yet.</p>
+                    <p className="text-gray-500">No reports available in the system.</p>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
@@ -81,6 +87,7 @@ export default function ResidentDashboard() {
                                 <th className="py-3 px-4">Priority</th>
                                 <th className="py-3 px-4">Status</th>
                                 <th className="py-3 px-4">Date</th>
+                                <th className="py-3 px-4 text-right">Action</th>
                             </tr>
                             </thead>
                             <tbody>
@@ -88,26 +95,34 @@ export default function ResidentDashboard() {
                                 <tr key={r.id} className="border-b hover:bg-gray-50 text-sm">
                                     <td className="py-3 px-4 font-medium text-gray-800">{r.title}</td>
                                     <td className="py-3 px-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                r.priority === "HIGH" || r.priority === "URGENT" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
-                                            }`}>
-                                                {r.priority}
-                                            </span>
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                            r.priority === "HIGH" || r.priority === "URGENT" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"
+                                        }`}>
+                                            {r.priority}
+                                        </span>
                                     </td>
                                     <td className="py-3 px-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                                r.status === "ASSIGNED" || r.status === "IN_PROGRESS"
-                                                    ? "bg-orange-100 text-orange-700"
-                                                    : r.status === "REJECTED"
-                                                        ? "bg-red-100 text-red-700"
-                                                        : r.status === "RESOLVED" || r.status === "CLOSED"
-                                                            ? "bg-emerald-100 text-emerald-700"
-                                                            : "bg-gray-100 text-gray-700"
-                                            }`}>
-                                                {r.status}
-                                            </span>
+                                        <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                            r.status === "ASSIGNED" || r.status === "IN_PROGRESS"
+                                                ? "bg-orange-100 text-orange-700"
+                                                : r.status === "REJECTED"
+                                                    ? "bg-red-100 text-red-700"
+                                                    : r.status === "RESOLVED" || r.status === "CLOSED"
+                                                        ? "bg-emerald-100 text-emerald-700"
+                                                        : "bg-gray-100 text-gray-700"
+                                        }`}>
+                                            {r.status}
+                                        </span>
                                     </td>
                                     <td className="py-3 px-4 text-gray-500">{r.createdAt?.substring(0, 10) || "N/A"}</td>
+                                    <td className="py-3 px-4 text-right">
+                                        <button
+                                            onClick={() => navigate(`/technician/reports/${r.id}`)}
+                                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs bg-blue-50 px-3 py-1.5 rounded-lg transition"
+                                        >
+                                            View <ArrowRight size={14} />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                             </tbody>
