@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Save, AlertCircle, CheckCircle, Clock, ClipboardList, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Save, AlertCircle, CheckCircle } from 'lucide-react';
 
 export default function UpdateStatus() {
     const { id } = useParams();
@@ -14,9 +14,10 @@ export default function UpdateStatus() {
     const [alert, setAlert] = useState({ type: '', text: '' });
     const [reportTitle, setReportTitle] = useState('');
     const [statusHistory, setStatusHistory] = useState([]);
+    const [technicianId, setTechnicianId] = useState('');
 
     const token = localStorage.getItem('token');
-    const techId = localStorage.getItem('userId');
+    const userId = localStorage.getItem('userId');
 
     const api = axios.create({
         baseURL: 'http://localhost:8081',
@@ -24,9 +25,9 @@ export default function UpdateStatus() {
     });
 
     useEffect(() => {
-        const fetchReportDetails = async () => {
+        const fetchDetails = async () => {
             try {
-                // Fetch report data and status updates history in parallel if endpoints exist
+                // Fetch report data
                 const response = await api.get(`/api/reports/${id}`);
                 const data = response.data.data ?? response.data;
                 if (data) {
@@ -34,48 +35,65 @@ export default function UpdateStatus() {
                     if (data.status) setStatus(data.status);
                 }
 
-                // Try loading status updates history matching database table schema
+                // Fetch technician profile linked to the logged-in user to get the correct technician ID (not userId)
                 try {
-                    const historyRes = await api.get(`/api/reports/${id}/status-updates`);
+                    const techRes = await api.get(`/api/technicians`);
+                    const techList = techRes.data.data ?? techRes.data;
+                    if (Array.isArray(techList)) {
+                        const matchedTech = techList.find(t =>
+                            String(t.userId) === String(userId) ||
+                            String(t.user?.id) === String(userId) ||
+                            String(t.id) === String(userId)
+                        );
+                        if (matchedTech) {
+                            setTechnicianId(matchedTech.id);
+                        } else if (techList.length > 0) {
+                            // Fallback to first available technician if exact match isn't found
+                            setTechnicianId(techList[0].id);
+                        }
+                    }
+                } catch (techErr) {
+                    console.log("Could not fetch technicians list, falling back to userId");
+                    setTechnicianId(userId || 1);
+                }
+
+                // Fetch status updates history matching backend endpoint /api/status-updates/report/{reportId}
+                try {
+                    const historyRes = await api.get(`/api/status-updates/report/${id}`);
                     const historyData = historyRes.data.data ?? historyRes.data;
                     if (Array.isArray(historyData)) {
                         setStatusHistory(historyData);
                     }
                 } catch (histErr) {
-                    console.log("Status history endpoint not mapped or empty");
+                    console.log("Status history endpoint fetch failed or empty");
                 }
 
             } catch (err) {
-                console.error("Failed to fetch report details:", err);
+                console.error("Failed to fetch details:", err);
             } finally {
                 setFetching(false);
             }
         };
-        fetchReportDetails();
-    }, [id]);
+        fetchDetails();
+    }, [id, userId]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
         setAlert({ type: '', text: '' });
 
-        // Payload matches exact database columns: comment, new_status, report_id, technician_id
+        // Payload matches backend StatusUpdateRequest fields using the resolved technician profile ID
         const payload = {
-            comment: comment,
-            new_status: status,
+            reportId: Number(id),
+            technicianId: technicianId ? Number(technicianId) : Number(userId) || 1,
             newStatus: status,
-            report_id: Number(id),
-            technician_id: techId ? Number(techId) : 1
+            comment: comment
         };
 
         try {
-            try {
-                await api.post(`/api/reports/${id}/status`, payload);
-            } catch (postErr) {
-                await api.put(`/api/reports/${id}`, payload);
-            }
+            await api.post('/api/status-updates', payload);
 
-            setAlert({ type: 'success', text: 'Status updated successfully!' });
+            setAlert({ type: 'success', text: 'Status update logged successfully!' });
             setTimeout(() => {
                 navigate(-1);
             }, 1500);
@@ -83,7 +101,7 @@ export default function UpdateStatus() {
             console.error("Failed to update status:", err);
             setAlert({
                 type: 'error',
-                text: err.response?.data?.message || 'Failed to update status. Please check backend API mapping.'
+                text: err.response?.data?.message || 'Failed to log status update. Please check backend API mapping.'
             });
         } finally {
             setLoading(false);
@@ -170,10 +188,10 @@ export default function UpdateStatus() {
                         <h3 className="text-lg font-bold text-gray-800 mb-3">Status Update History</h3>
                         <div className="space-y-3">
                             {statusHistory.map((item, idx) => (
-                                <div key={idx} className="p-4 bg-gray-50 rounded-lg border border-gray-100 text-sm space-y-1">
+                                <div key={item.id || idx} className="p-4 bg-gray-50 rounded-lg border border-gray-100 text-sm space-y-1">
                                     <div className="flex justify-between items-center">
-                                        <span className="font-semibold text-blue-600">{item.new_status || item.newStatus}</span>
-                                        <span className="text-xs text-gray-400">{item.created_at?.substring(0, 16) || "N/A"}</span>
+                                        <span className="font-semibold text-blue-600">{item.newStatus || item.new_status}</span>
+                                        <span className="text-xs text-gray-400">{item.createdAt?.substring(0, 16) || item.created_at?.substring(0, 16) || "N/A"}</span>
                                     </div>
                                     <p className="text-gray-700">{item.comment}</p>
                                 </div>
