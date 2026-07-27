@@ -1,19 +1,18 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { AlertCircle, Send, ArrowLeft, Upload, X } from "lucide-react";
+import { AlertCircle, Send, ArrowLeft } from "lucide-react";
 
 export default function CreateReport() {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [categories, setCategories] = useState([]);
     const [error, setError] = useState("");
-    const [imagePreview, setImagePreview] = useState(null);
 
     const [formData, setFormData] = useState({
         title: "",
         description: "",
-        photoUrl: "", // Stores image data or URL
+        photoUrl: "",
         priority: "HIGH",
         status: "REPORTED",
         streetName: "",
@@ -55,31 +54,6 @@ export default function CreateReport() {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
-    // Handle optional image file upload and convert to base64 preview
-    const handleImageChange = (e) => {
-        const file = e.target.files[0];
-        if (!file) return;
-
-        // Optional: limit file size (e.g., 5MB)
-        if (file.size > 5 * 1024 * 1024) {
-            setError("Image size must be less than 5MB.");
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setFormData(prev => ({ ...prev, photoUrl: reader.result }));
-            setImagePreview(reader.result);
-            setError("");
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const removeImage = () => {
-        setFormData(prev => ({ ...prev, photoUrl: "" }));
-        setImagePreview(null);
-    };
-
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
@@ -95,7 +69,7 @@ export default function CreateReport() {
             await api.post("/api/reports", {
                 title: formData.title,
                 description: formData.description,
-                photoUrl: formData.photoUrl || null, // Optional image field
+                photoUrl: formData.photoUrl || null,
                 priority: formData.priority,
                 status: formData.status,
                 streetName: formData.streetName,
@@ -256,38 +230,16 @@ export default function CreateReport() {
                     </div>
                 </div>
 
-                {/* Optional Image Upload Section */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Upload Photo (Optional)</label>
-                    {!imagePreview ? (
-                        <label className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 cursor-pointer hover:border-blue-500 bg-gray-50 transition">
-                            <Upload className="text-gray-400 mb-2" size={24} />
-                            <span className="text-sm font-medium text-gray-600">Click to upload image</span>
-                            <span className="text-xs text-gray-400 mt-1">PNG, JPG, or WEBP (max 5MB)</span>
-                            <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleImageChange}
-                                className="hidden"
-                            />
-                        </label>
-                    ) : (
-                        <div className="relative inline-block mt-2">
-                            <img
-                                src={imagePreview}
-                                alt="Upload Preview"
-                                className="h-32 w-auto rounded-lg border shadow-sm object-cover"
-                            />
-                            <button
-                                type="button"
-                                onClick={removeImage}
-                                className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full p-1 shadow hover:bg-red-700 transition"
-                                title="Remove image"
-                            >
-                                <X size={16} />
-                            </button>
-                        </div>
-                    )}
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Photo URL</label>
+                    <input
+                        type="url"
+                        name="photoUrl"
+                        value={formData.photoUrl}
+                        onChange={handleChange}
+                        placeholder="https://example.com/photo.jpg"
+                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:outline-none text-sm"
+                    />
                 </div>
 
                 <div>
