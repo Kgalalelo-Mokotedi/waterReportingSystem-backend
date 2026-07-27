@@ -14,15 +14,16 @@ import Pagination from "./Pagination";
 export default function AdminDashboard() {
 
     const user = JSON.parse(localStorage.getItem("user") || "{}");
-    const [search,setSearch]=useState("");
-    const [status,setStatus]=useState("");
-    const [priority,setPriority]=useState("");
-    const [category,setCategory]=useState("");
-    const [municipality,setMunicipality]=useState("");
-    const [suburb,setSuburb]=useState("");
+    const [search, setSearch] = useState("");
+    const [status, setStatus] = useState("");
+    const [priority, setPriority] = useState("");
+    const [category, setCategory] = useState("");
+    const [municipality, setMunicipality] = useState("");
+    const [suburb, setSuburb] = useState("");
+
     const [reports, setReports] = useState([]);
     const [loadingReports, setLoadingReports] = useState(false);
-    const [categories,setCategories]=useState([]);
+    const [categories, setCategories] = useState([]);
     const navigate = useNavigate();
     const [updates, setUpdates] = useState([]);
     const [loadingUpdates, setLoadingUpdates] = useState(false);
@@ -41,282 +42,173 @@ export default function AdminDashboard() {
         assignedTechnicians: 0
     });
 
+    const token = localStorage.getItem("token");
+    const api = axios.create({
+        baseURL: "http://localhost:8081",
+        headers: { Authorization: `Bearer ${token}` }
+    });
+
     useEffect(() => {
         loadStats();
         loadCategories();
-        loadReports();
         loadRecentUpdates();
+    }, []);
 
-    }, [
-        page,
-        search,
-        status,
-        priority,
-        category,
-        municipality,
-        suburb
-
-    ]);
+    useEffect(() => {
+        loadReports();
+    }, [page, search, status, priority, category, municipality, suburb]);
 
     const loadStats = async () => {
-
         try {
-
-            const response = await axios.get(
-                "http://localhost:8080/api/dashboard/stats",
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`
-                    }
-                }
-            );
-
-            if (response.data.success) {
-                setStats(response.data.data);
-            }
-
+            const response = await api.get("/api/dashboard/stats");
+            setStats(response.data.data ?? response.data);
         } catch (error) {
-
             console.error("Failed to load dashboard statistics", error);
-
         }
-
     };
 
-
-    const loadCategories = async()=>{
-
-        try{
-
-            const response = await axios.get(
-                "http://localhost:8080/api/categories",
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`
-                    }
-                }
-            );
-
-            setCategories(response.data);
-
+    const loadCategories = async () => {
+        try {
+            const response = await api.get("/api/categories");
+            setCategories(response.data.data ?? response.data);
+        } catch (err) {
+            console.error("Failed to load categories", err);
         }
-        catch(err){
-
-            console.log(err);
-
-        }
-
-    }
+    };
 
     const loadReports = async () => {
-
         try {
-
             setLoadingReports(true);
 
-            const response = await axios.get(
+            // Determine if we should use a specific search endpoint or the main paginated list
+            let endpoint = "/api/reports";
+            let params = { page, size, sortBy: "createdAt" };
 
-                "http://localhost:8080/api/reports",
+            if (status) {
+                endpoint = "/api/reports/search/status";
+                params.status = status;
+            } else if (priority) {
+                endpoint = "/api/reports/search/priority";
+                params.priority = priority;
+            } else if (municipality) {
+                endpoint = "/api/reports/search/municipality";
+                params.municipality = municipality;
+            } else if (suburb) {
+                endpoint = "/api/reports/search/suburb";
+                params.suburb = suburb;
+            } else if (category) {
+                endpoint = "/api/reports/search/category";
+                params.categoryId = category;
+            } else if (search) {
+                endpoint = "/api/reports/search/title";
+                params.title = search;
+            }
 
-                {
+            const response = await api.get(endpoint, { params });
+            const data = response.data.data ?? response.data;
 
-                    params:{
+            setReports(data.content || []);
+            setTotalPages(data.totalPages || 0);
+            setTotalElements(data.totalElements || 0);
 
-                        page,
-
-                        size,
-
-                        search,
-
-                        status,
-
-                        priority,
-
-                        category,
-
-                        municipality,
-
-                        suburb
-
-                    },
-
-                    headers:{
-
-                        Authorization:`Bearer ${localStorage.getItem("token")}`
-
-                    }
-
-                }
-
-            );
-
-            setReports(response.data.content);
-            setTotalPages(response.data.totalPages);
-            setTotalElements(response.data.totalElements);
-
-        }
-        catch(error){
-
-            console.error(error);
-
-        }
-        finally{
-
+        } catch (error) {
+            console.error("Failed to load reports", error);
+            setReports([]);
+        } finally {
             setLoadingReports(false);
-
         }
-
     };
 
     const loadRecentUpdates = async () => {
-
         try {
-
             setLoadingUpdates(true);
-
-            const response = await axios.get(
-                "http://localhost:8080/api/status-updates",
-                {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem("token")}`
-                    }
-                }
-            );
-
-            if (response.data.success) {
-                setUpdates(response.data.data);
-            } else {
-                setUpdates(response.data);
-            }
-
+            const response = await api.get("/api/status-updates");
+            const data = response.data.data ?? response.data;
+            setUpdates(Array.isArray(data) ? data : []);
         } catch (error) {
-
-            console.error(error);
-
+            console.error("Failed to load recent updates", error);
         } finally {
-
             setLoadingUpdates(false);
-
         }
-
     };
 
     const resetFilters = () => {
-
         setSearch("");
         setStatus("");
         setPriority("");
         setCategory("");
         setMunicipality("");
         setSuburb("");
-
         setPage(0);
-
     };
+
     const changePage = (newPage) => {
-
         setPage(newPage);
-
     };
 
-    const exportReports=()=>{
-
+    const exportReports = () => {
         alert("Export coming soon");
-
-    }
+    };
 
     const viewReport = (report) => {
-
-        console.log(report);
-
+        navigate(`/admin/reports/${report.id}`);
     };
 
     const updateStatus = (report) => {
-
         console.log(report);
-
     };
 
     const manageReports = () => navigate("/admin/reports");
-    const assignTechnician = () => navigate("/admin/assignments");
+    const assignTechnician = (report) => {
+        navigate(`/admin/assignments/${report.id}`);
+    };
+    const openAssignments = () => navigate("/admin/assignments");
     const manageTechnicians = () => navigate("/admin/technicians");
     const manageCategories = () => navigate("/admin/categories");
     const viewStatistics = () => navigate("/admin/statistics");
     const createReport = () => navigate("/admin/reports/new");
 
     return (
-
         <div className="flex bg-gray-100 min-h-screen">
-
             <Sidebar user={user} />
-
             <div className="flex-1 flex flex-col">
-
-                <TopNavbar
-                    user={user}
-                    notificationCount={5}
-                />
-
+                <TopNavbar user={user} notificationCount={5} />
                 <main className="p-8 space-y-8">
-
                     <DashboardCards stats={stats} />
 
                     <SearchFilters
-
                         search={search}
                         setSearch={setSearch}
-
                         status={status}
                         setStatus={setStatus}
-
                         priority={priority}
                         setPriority={setPriority}
-
                         category={category}
                         setCategory={setCategory}
-
                         municipality={municipality}
                         setMunicipality={setMunicipality}
-
                         suburb={suburb}
                         setSuburb={setSuburb}
-
                         categories={categories}
-
                         onReset={resetFilters}
-
                         onExport={exportReports}
-
                     />
 
                     <ReportsTable
-
                         reports={reports}
-
                         loading={loadingReports}
-
                         onView={viewReport}
-
                         onAssign={assignTechnician}
-
                         onStatus={updateStatus}
-
                     />
 
                     <QuickActions
-
                         onManageReports={manageReports}
-
-                        onAssignTechnician={assignTechnician}
-
+                        onAssignTechnician={openAssignments}
                         onManageTechnicians={manageTechnicians}
-
                         onManageCategories={manageCategories}
-
                         onStatistics={viewStatistics}
-
                         onNewReport={createReport}
-
                     />
 
                     <RecentUpdates
@@ -325,25 +217,14 @@ export default function AdminDashboard() {
                     />
 
                     <Pagination
-
                         currentPage={page}
-
                         totalPages={totalPages}
-
                         totalElements={totalElements}
-
                         pageSize={size}
-
                         onPageChange={changePage}
-
                     />
                 </main>
-
             </div>
-
         </div>
-
     );
-
-
 }

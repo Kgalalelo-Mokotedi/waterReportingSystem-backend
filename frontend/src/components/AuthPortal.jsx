@@ -53,10 +53,26 @@ export default function AuthPortal() {
                 });
 
                 const apiResponse = response.data;
-                const token = apiResponse.token || apiResponse.data?.token || apiResponse.data;
+                const responseData = apiResponse.data || apiResponse;
+                const token = responseData.token || apiResponse.token;
 
                 if (token) {
                     localStorage.setItem('token', token);
+
+                    // Extract user metadata from response.data based on backend structure
+                    if (responseData.userId) localStorage.setItem('userId', responseData.userId);
+                    if (responseData.firstName) localStorage.setItem('firstName', responseData.firstName);
+                    if (responseData.lastName) localStorage.setItem('lastName', responseData.lastName);
+
+                    // Fallback structured user object for components checking it
+                    if (responseData.firstName) {
+                        localStorage.setItem('user', JSON.stringify({
+                            firstName: responseData.firstName,
+                            lastName: responseData.lastName,
+                            userId: responseData.userId
+                        }));
+                    }
+
                     const role = getRoleFromToken(token);
 
                     if (role.includes('ADMIN') || role.includes('MUNICIPAL')) {
