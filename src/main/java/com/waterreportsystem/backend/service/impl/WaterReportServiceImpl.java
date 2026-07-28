@@ -3,11 +3,13 @@ package com.waterreportsystem.backend.service.impl;
 import com.waterreportsystem.backend.dto.WaterReportRequest;
 import com.waterreportsystem.backend.dto.WaterReportResponse;
 import com.waterreportsystem.backend.entity.IssueCategory;
+import com.waterreportsystem.backend.entity.User;
 import com.waterreportsystem.backend.entity.WaterReport;
 import com.waterreportsystem.backend.enums.Priority;
 import com.waterreportsystem.backend.enums.Status;
 import com.waterreportsystem.backend.exception.ResourceNotFoundException;
 import com.waterreportsystem.backend.repository.IssueCategoryRepository;
+import com.waterreportsystem.backend.repository.UserRepository;
 import com.waterreportsystem.backend.repository.WaterReportRepository;
 import com.waterreportsystem.backend.service.WaterReportService;
 import org.springframework.data.domain.Page;
@@ -22,11 +24,14 @@ public class WaterReportServiceImpl implements WaterReportService {
 
     private final WaterReportRepository waterReportRepository;
     private final IssueCategoryRepository issueCategoryRepository;
+    private final UserRepository userRepository;
 
     public WaterReportServiceImpl(WaterReportRepository waterReportRepository,
-                                  IssueCategoryRepository issueCategoryRepository) {
+                                  IssueCategoryRepository issueCategoryRepository,
+                                  UserRepository userRepository) {
         this.waterReportRepository = waterReportRepository;
         this.issueCategoryRepository = issueCategoryRepository;
+        this.userRepository = userRepository;
     }
 
 
@@ -183,6 +188,7 @@ public class WaterReportServiceImpl implements WaterReportService {
                 PageRequest.of(page, size)
         ).map(this::mapToResponse);
     }
+
     @Override
     public Page<WaterReportResponse> getReportsByResidentId(
             Long residentId,
@@ -220,6 +226,16 @@ public class WaterReportServiceImpl implements WaterReportService {
         response.setResolvedAt(report.getResolvedAt());
 
         response.setResidentId(report.getResidentId());
+
+        // Fetch user from database using residentId and populate response fields
+        if (report.getResidentId() != null) {
+            userRepository.findById(report.getResidentId()).ifPresent(user -> {
+                response.setResidentFirstName(user.getFirstName());
+                response.setResidentLastName(user.getLastName());
+                response.setResidentEmail(user.getEmail());
+                response.setResidentPhone(user.getPhoneNumber()); // Changed from getPhone() to getPhoneNumber()
+            });
+        }
 
         if (report.getCategory() != null) {
             response.setCategoryId(report.getCategory().getId());

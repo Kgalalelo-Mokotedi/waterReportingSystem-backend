@@ -50,16 +50,30 @@ export default function AdminDashboard() {
         loadReports();
     }, [page, search, status, priority, category, municipality, suburb]);
 
-    // Compute stats dynamically from live records to keep metric cards in sync
+    // Compute stats dynamically from live records and local storage overrides
     const stats = useMemo(() => {
         const totalReports = totalElements || reports.length;
 
-        const pendingReports = reports.filter(r => r.status === "REPORTED" || r.status === "PENDING").length;
-        const inProgressReports = reports.filter(r => r.status === "IN_PROGRESS" || r.status === "ASSIGNED").length;
+        // Pull frontend-only local assignments to accurately compute assigned counts
+        const localAssignments = JSON.parse(localStorage.getItem("report_assignments") || "{}");
+        const assignedReportIds = Object.keys(localAssignments);
+
+        const pendingReports = reports.filter(r => (r.status === "REPORTED" || r.status === "PENDING") && !localAssignments[r.id]).length;
+
+        // Count reports that are in progress or marked assigned via backend/localStorage
+        const inProgressReports = reports.filter(r =>
+            r.status === "IN_PROGRESS" || r.status === "ASSIGNED" || localAssignments[r.id]
+        ).length;
+
         const resolvedReports = reports.filter(r => r.status === "RESOLVED" || r.status === "CLOSED").length;
 
-        const availableTechnicians = technicians.filter(t => t.available || t.status === "AVAILABLE" || !t.busy).length;
-        const assignedTechnicians = technicians.filter(t => t.busy || t.status === "ASSIGNED" || t.status === "BUSY").length;
+        // Count assigned technicians based on active local assignments or backend status
+        const assignedTechniciansCount = Math.max(
+            assignedReportIds.length,
+            technicians.filter(t => t.busy || t.status === "ASSIGNED" || t.status === "BUSY").length
+        );
+
+        const availableTechnicians = Math.max(0, technicians.length - assignedTechniciansCount);
 
         return {
             totalReports,
@@ -67,7 +81,7 @@ export default function AdminDashboard() {
             inProgressReports,
             resolvedReports,
             availableTechnicians,
-            assignedTechnicians
+            assignedTechnicians: assignedTechniciansCount
         };
     }, [reports, totalElements, technicians]);
 
@@ -120,7 +134,22 @@ export default function AdminDashboard() {
             const response = await api.get(endpoint, { params });
             const data = response.data.data ?? response.data;
 
-            setReports(data.content || []);
+            const rawReports = data.content || [];
+
+            // Merge local overrides so the table and stats sync immediately
+            const localAssignments = JSON.parse(localStorage.getItem("report_assignments") || "{}");
+            const updatedReports = rawReports.map(rep => {
+                if (localAssignments[rep.id]) {
+                    return {
+                        ...rep,
+                        status: localAssignments[rep.id].status || rep.status,
+                        technicianName: localAssignments[rep.id].technicianName || rep.technicianName
+                    };
+                }
+                return rep;
+            });
+
+            setReports(updatedReports);
             setTotalPages(data.totalPages || 0);
             setTotalElements(data.totalElements || 0);
 
@@ -136,7 +165,6 @@ export default function AdminDashboard() {
         try {
             setLoadingUpdates(true);
 
-            // Pull recent activity/status updates from DB audit logs or synthesize from reports
             const response = await api.get("/api/status-updates");
             const data = response.data.data ?? response.data;
 

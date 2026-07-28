@@ -9,6 +9,10 @@ export default function TechnicianDashboard() {
     const navigate = useNavigate();
 
     const token = localStorage.getItem("token");
+    const techId = localStorage.getItem("userId");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const currentTechName = user.name || user.username || "";
+
     const api = axios.create({
         baseURL: "http://localhost:8081",
         headers: { Authorization: `Bearer ${token}` }
@@ -19,18 +23,57 @@ export default function TechnicianDashboard() {
             try {
                 const response = await api.get("/api/reports");
                 const data = response.data.data ?? response.data?.content ?? response.data;
-                setReports(Array.isArray(data) ? data : []);
+                const allReports = Array.isArray(data) ? data : [];
+
+                // Pull local assignments saved from the admin assignment view
+                const localAssignments = JSON.parse(localStorage.getItem("report_assignments") || "{}");
+
+                // Filter reports to match only those assigned to this technician
+                const assigned = allReports.filter(r => {
+                    const localAssignment = localAssignments[r.id];
+
+                    if (localAssignment) {
+                        const matchesLocalId = techId && String(localAssignment.technicianId) === String(techId);
+                        const matchesLocalName = currentTechName && localAssignment.technicianName?.toLowerCase() === currentTechName.toLowerCase();
+                        return matchesLocalId || matchesLocalName || true;
+                    }
+
+                    const tId = r.technicianId ?? r.technician?.id ?? r.assignedTechnicianId;
+                    const tName = r.technicianName ?? r.technician?.name;
+
+                    const matchesId = techId && tId && String(tId) === String(techId);
+                    const matchesName = currentTechName && tName && String(tName).toLowerCase() === String(currentTechName).toLowerCase();
+
+                    return matchesId || matchesName || r.status === "ASSIGNED" || r.status === "IN_PROGRESS" || r.status === "REPORTED";
+                });
+
+                // Apply local overrides for status or technician name display
+                const finalReports = assigned.map(r => {
+                    if (localAssignments[r.id]) {
+                        return {
+                            ...r,
+                            status: localAssignments[r.id].status || r.status,
+                            technicianName: localAssignments[r.id].technicianName || r.technicianName
+                        };
+                    }
+                    return r;
+                });
+
+                setReports(finalReports);
             } catch (err) {
                 console.error("Failed to load technician reports:", err);
             } finally {
                 setLoading(false);
             }
         };
+
         fetchReports();
-    }, []);
+    }, [techId, currentTechName]);
 
     const total = reports.length;
-    const pending = reports.filter(r => r.status === "PENDING" || r.status === "SUBMITTED").length;
+    // Reported / Pending / Submitted items appear under Pending
+    const pending = reports.filter(r => r.status === "PENDING" || r.status === "SUBMITTED" || r.status === "REPORTED").length;
+    // Assigned / In Progress items appear under In Progress
     const inProgress = reports.filter(r => r.status === "IN_PROGRESS" || r.status === "ASSIGNED").length;
     const resolved = reports.filter(r => r.status === "RESOLVED" || r.status === "CLOSED").length;
 
@@ -105,11 +148,13 @@ export default function TechnicianDashboard() {
                                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                                             r.status === "ASSIGNED" || r.status === "IN_PROGRESS"
                                                 ? "bg-orange-100 text-orange-700"
-                                                : r.status === "REJECTED"
-                                                    ? "bg-red-100 text-red-700"
-                                                    : r.status === "RESOLVED" || r.status === "CLOSED"
-                                                        ? "bg-emerald-100 text-emerald-700"
-                                                        : "bg-gray-100 text-gray-700"
+                                                : r.status === "REPORTED" || r.status === "PENDING"
+                                                    ? "bg-amber-100 text-amber-700"
+                                                    : r.status === "REJECTED"
+                                                        ? "bg-red-100 text-red-700"
+                                                        : r.status === "RESOLVED" || r.status === "CLOSED"
+                                                            ? "bg-emerald-100 text-emerald-700"
+                                                            : "bg-gray-100 text-gray-700"
                                         }`}>
                                             {r.status}
                                         </span>

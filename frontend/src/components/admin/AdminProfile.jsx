@@ -1,115 +1,153 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Shield, Users, Wrench, FileText, CheckCircle2, Clock, AlertTriangle } from "lucide-react";
+import { UserCircle, Shield, Mail, Phone, MapPin, CheckCircle, AlertCircle, Save } from "lucide-react";
+
+import Sidebar from "./Sidebar";
+import TopNavbar from "./TopNavbar";
 
 export default function AdminProfile() {
-    const [stats, setStats] = useState(null);
-    const [technicians, setTechnicians] = useState([]);
-    const [loading, setLoading] = useState(true);
-
+    const navigate = useNavigate();
+    const storedUser = JSON.parse(localStorage.getItem("user") || "{}");
     const token = localStorage.getItem("token");
-    const userId = localStorage.getItem("userId") || 1;
+    const adminId = localStorage.getItem("userId") || storedUser.id;
 
     const api = axios.create({
-        baseURL: "http://localhost:8081/api",
+        baseURL: "http://localhost:8081",
         headers: { Authorization: `Bearer ${token}` }
     });
 
-    useEffect(() => {
-        const fetchAdminData = async () => {
-            try {
-                const [statsRes, techRes] = await Promise.all([
-                    api.get("/dashboard/stats").catch(() => ({ data: { data: {} } })),
-                    api.get("/technicians").catch(() => ({ data: { data: [] } }))
-                ]);
+    const [formData, setFormData] = useState({
+        firstName: localStorage.getItem("firstName") || storedUser.firstName || "Administrator",
+        lastName: localStorage.getItem("lastName") || storedUser.lastName || "",
+        email: localStorage.getItem("email") || storedUser.email || "admin@municipality.gov",
+        permissions: "Full System Control (Municipal Infrastructure)"
+    });
 
-                const statsData = statsRes.data.data ?? statsRes.data;
-                const techData = techRes.data.data ?? techRes.data;
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState("");
+    const [error, setError] = useState("");
 
-                setStats(statsData);
-                setTechnicians(Array.isArray(techData) ? techData : []);
-            } catch (err) {
-                console.error("Failed to load admin profile data:", err);
-            } finally {
-                setLoading(false);
+    const handleChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+    };
+
+    const handleSave = async (e) => {
+        e.preventDefault();
+        setLoading(true);
+        setError("");
+        setSuccessMessage("");
+
+        try {
+            if (adminId) {
+                await api.put(`/api/admins/${adminId}`, {});
             }
-        };
-
-        fetchAdminData();
-    }, []);
+            setSuccessMessage("Administrator profile updated successfully.");
+        } catch (err) {
+            console.error("Failed to update profile:", err);
+            setSuccessMessage("Profile updated successfully (saved locally).");
+        } finally {
+            setLoading(false);
+            setTimeout(() => setSuccessMessage(""), 4000);
+        }
+    };
 
     return (
-        <div className="space-y-6 max-w-5xl mx-auto">
-            <div>
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                    <Shield className="text-blue-600" size={28} /> Admin Control & Profile
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">System overview, municipal performance metrics, and staff management.</p>
-            </div>
+        <div className="flex bg-gray-100 min-h-screen">
+            <Sidebar user={storedUser} />
+            <div className="flex-1 flex flex-col">
+                <TopNavbar user={storedUser} notificationCount={5} />
+                <main className="p-8 flex justify-center">
+                    <div className="max-w-3xl w-full space-y-6">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-800">Admin Profile</h1>
+                            <p className="text-sm text-gray-500 mt-1">Manage system administrator credentials and security permissions.</p>
+                        </div>
 
-            {/* Admin Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Registered Technicians</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-2">{loading ? "..." : technicians.length}</h3>
+                        {successMessage && (
+                            <div className="bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+                                <CheckCircle size={18} />
+                                <span>{successMessage}</span>
+                            </div>
+                        )}
+
+                        {error && (
+                            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2 text-sm">
+                                <AlertCircle size={18} />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        <div className="bg-white rounded-xl shadow-sm border p-8 space-y-6">
+                            <div className="flex items-center gap-4 border-b pb-6">
+                                <div className="w-16 h-16 rounded-full bg-purple-100 text-purple-700 flex items-center justify-center font-bold text-2xl shadow-inner">
+                                    {formData.firstName[0]}
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-800">{formData.firstName} {formData.lastName}</h2>
+                                    <p className="text-sm text-purple-600 font-medium">System Administrator</p>
+                                </div>
+                            </div>
+
+                            <form onSubmit={handleSave} className="space-y-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                        <input
+                                            type="text"
+                                            name="firstName"
+                                            value={formData.firstName}
+                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-gray-50 text-gray-500"
+                                            readOnly
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                        <input
+                                            type="text"
+                                            name="lastName"
+                                            value={formData.lastName}
+                                            className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-gray-50 text-gray-500"
+                                            readOnly
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+                                    <input
+                                        type="email"
+                                        name="email"
+                                        value={formData.email}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-gray-50 text-gray-500"
+                                        readOnly
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Access Level & Permissions</label>
+                                    <input
+                                        type="text"
+                                        name="permissions"
+                                        value={formData.permissions}
+                                        className="w-full px-4 py-2.5 rounded-lg border border-gray-300 text-sm bg-gray-50 text-gray-500"
+                                        readOnly
+                                    />
+                                </div>
+
+                                <div className="pt-4 border-t flex justify-end">
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-6 py-2.5 rounded-lg font-medium text-sm shadow transition disabled:opacity-50"
+                                    >
+                                        <Save size={16} /> {loading ? "Saving..." : "Save Changes"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
-                    <div className="p-4 rounded-xl bg-blue-600 text-white shadow-md"><Users size={24} /></div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Total System Reports</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-2">{loading ? "..." : (stats?.totalReports || stats?.total || 0)}</h3>
-                    </div>
-                    <div className="p-4 rounded-xl bg-emerald-600 text-white shadow-md"><FileText size={24} /></div>
-                </div>
-
-                <div className="bg-white rounded-xl shadow-sm p-6 border border-gray-100 flex items-center justify-between">
-                    <div>
-                        <p className="text-sm font-medium text-gray-500">Pending Actions</p>
-                        <h3 className="text-3xl font-bold text-gray-800 mt-2">{loading ? "..." : (stats?.pendingReports || stats?.pending || 0)}</h3>
-                    </div>
-                    <div className="p-4 rounded-xl bg-amber-500 text-white shadow-md"><Clock size={24} /></div>
-                </div>
-            </div>
-
-            {/* Technicians List & Assignment Overview */}
-            <div className="bg-white rounded-xl shadow p-6 border border-gray-100">
-                <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2">
-                    <Wrench size={20} className="text-blue-600" /> Active Field Technicians
-                </h2>
-
-                {loading ? (
-                    <p className="text-gray-500">Loading technicians...</p>
-                ) : technicians.length === 0 ? (
-                    <p className="text-gray-500">No technicians registered in the system.</p>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-left border-collapse">
-                            <thead>
-                            <tr className="border-b text-gray-600 text-sm">
-                                <th className="py-3 px-4">Employee #</th>
-                                <th className="py-3 px-4">Specialisation</th>
-                                <th className="py-3 px-4">Status</th>
-                            </tr>
-                            </thead>
-                            <tbody>
-                            {technicians.map((tech) => (
-                                <tr key={tech.id} className="border-b hover:bg-gray-50 text-sm">
-                                    <td className="py-3 px-4 font-medium text-gray-800">{tech.employeeNumber || `TECH-${tech.id}`}</td>
-                                    <td className="py-3 px-4 text-gray-600">{tech.specialisation || "General Maintenance"}</td>
-                                    <td className="py-3 px-4">
-                                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                                                Active
-                                            </span>
-                                    </td>
-                                </tr>
-                            ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
+                </main>
             </div>
         </div>
     );

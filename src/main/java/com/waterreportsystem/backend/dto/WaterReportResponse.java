@@ -40,4 +40,10 @@ public class WaterReportResponse {
     private Long residentId;
 
     private Long categoryId;
+
+    // Resident Details Fields
+    private String residentFirstName;
+    private String residentLastName;
+    private String residentEmail;
+    private String residentPhone;
 }
