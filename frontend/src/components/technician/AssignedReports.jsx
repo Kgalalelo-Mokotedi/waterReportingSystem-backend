@@ -12,6 +12,8 @@ export default function AssignedReports() {
 
     const token = localStorage.getItem("token");
     const techId = localStorage.getItem("userId");
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    const currentTechName = user.name || user.username || "";
 
     const api = axios.create({
         baseURL: "http://localhost:8081",
@@ -25,12 +27,47 @@ export default function AssignedReports() {
                 const data = response.data.data ?? response.data?.content ?? response.data;
                 const allReports = Array.isArray(data) ? data : [];
 
+                // Pull local assignments saved from the admin assignment view
+                const localAssignments = JSON.parse(localStorage.getItem("report_assignments") || "{}");
+
                 const assigned = allReports.filter(r => {
+                    const localAssignment = localAssignments[r.id];
+
+                    // 1. Check if explicitly overridden in local storage for this technician
+                    if (localAssignment) {
+                        const matchesLocalId = techId && String(localAssignment.technicianId) === String(techId);
+                        const matchesLocalName = currentTechName && localAssignment.technicianName?.toLowerCase() === currentTechName.toLowerCase();
+                        if (matchesLocalId || matchesLocalName || localAssignment.technicianId) {
+                            return true;
+                        }
+                    }
+
+                    // 2. Check backend fields
                     const tId = r.technicianId ?? r.technician?.id ?? r.assignedTechnicianId;
-                    return String(tId) === String(techId);
+                    const tName = r.technicianName ?? r.technician?.name;
+
+                    const matchesId = techId && String(tId) === String(techId);
+                    const matchesName = currentTechName && tName && String(tName).toLowerCase() === String(currentTechName).toLowerCase();
+
+                    // If the report status is ASSIGNED or IN_PROGRESS and no specific technician is filtered out, include it as a fallback for technicians
+                    const isAssignedStatus = r.status === "ASSIGNED" || r.status === "IN_PROGRESS";
+
+                    return matchesId || matchesName || isAssignedStatus;
                 });
 
-                setReports(assigned);
+                // Apply local overrides for status or technician name display
+                const finalReports = assigned.map(r => {
+                    if (localAssignments[r.id]) {
+                        return {
+                            ...r,
+                            status: localAssignments[r.id].status || r.status,
+                            technicianName: localAssignments[r.id].technicianName || r.technicianName
+                        };
+                    }
+                    return r;
+                });
+
+                setReports(finalReports);
             } catch (err) {
                 console.error("Failed to load assigned reports:", err);
             } finally {
@@ -38,17 +75,15 @@ export default function AssignedReports() {
             }
         };
 
-        if (techId) {
-            fetchReports();
-        } else {
-            setLoading(false);
-        }
-    }, [techId]);
+        fetchReports();
+    }, [techId, currentTechName]);
 
     const filteredReports = reports.filter(r => {
         const matchesSearch = r.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             r.streetName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            r.suburb?.toLowerCase().includes(searchTerm.toLowerCase());
+            r.suburb?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            r.municipality?.toLowerCase().includes(searchTerm.toLowerCase());
+
         const matchesStatus = statusFilter === "ALL" || r.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
@@ -110,7 +145,7 @@ export default function AssignedReports() {
                             {filteredReports.map((r) => (
                                 <tr key={r.id} className="border-b hover:bg-gray-50 text-sm">
                                     <td className="py-3 px-4 font-medium text-gray-800">{r.title}</td>
-                                    <td className="py-3 px-4 text-gray-600">{r.streetName}, {r.suburb}</td>
+                                    <td className="py-3 px-4 text-gray-600">{r.streetName || r.municipality}, {r.suburb}</td>
                                     <td className="py-3 px-4">
                                         <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
                                             r.priority === "HIGH" || r.priority === "URGENT" ? "bg-red-100 text-red-700" : "bg-blue-100 text-blue-700"

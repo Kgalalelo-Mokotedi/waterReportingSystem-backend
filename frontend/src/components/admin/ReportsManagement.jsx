@@ -41,15 +41,29 @@ export default function ReportsManagement() {
             const res = await api.get(url, { params });
             const rawData = res.data.data ?? res.data;
 
+            let reportsList = [];
             if (Array.isArray(rawData)) {
-                setReports(rawData);
+                reportsList = rawData;
                 setTotalPages(1);
             } else if (rawData && Array.isArray(rawData.content)) {
-                setReports(rawData.content);
+                reportsList = rawData.content;
                 setTotalPages(rawData.totalPages || 0);
-            } else {
-                setReports([]);
             }
+
+            // Merge frontend-only assignment overrides from localStorage
+            const localAssignments = JSON.parse(localStorage.getItem("report_assignments") || "{}");
+            const updatedReports = reportsList.map(rep => {
+                if (localAssignments[rep.id]) {
+                    return {
+                        ...rep,
+                        status: localAssignments[rep.id].status || rep.status,
+                        technicianName: localAssignments[rep.id].technicianName || rep.technicianName
+                    };
+                }
+                return rep;
+            });
+
+            setReports(updatedReports);
 
         } catch (err) {
             console.error("Failed to load reports:", err);
@@ -109,8 +123,8 @@ export default function ReportsManagement() {
                                 <tr><td colSpan="6" className="text-center py-6 text-gray-500">No reports found in database.</td></tr>
                             ) : (
                                 reports.map((rep) => {
-                                    // Extract technician name safely across different possible backend response structures
-                                    const techName = rep.technician?.name || rep.technicianName || rep.assignedTechnicianName || (rep.technicianId ? `Technician #${rep.technicianId}` : "Unassigned");
+                                    const techName = rep.technicianName || rep.technician?.name || (rep.technicianId ? `Technician #${rep.technicianId}` : "Unassigned");
+                                    const isAssigned = techName !== "Unassigned" || rep.status === "ASSIGNED";
 
                                     return (
                                         <tr key={rep.id} className="hover:bg-gray-50 transition">
@@ -120,7 +134,7 @@ export default function ReportsManagement() {
                                             </td>
                                             <td className="px-6 py-4 text-gray-600 text-sm">{rep.suburb}, {rep.municipality}</td>
                                             <td className="px-6 py-4 text-sm font-medium text-gray-800">
-                                                <span className={`px-2 py-1 rounded text-xs ${rep.technicianId || rep.technician ? "bg-purple-50 text-purple-700" : "bg-gray-100 text-gray-500"}`}>
+                                                <span className={`px-2 py-1 rounded text-xs ${isAssigned ? "bg-purple-50 text-purple-700" : "bg-gray-100 text-gray-500"}`}>
                                                     {techName}
                                                 </span>
                                             </td>

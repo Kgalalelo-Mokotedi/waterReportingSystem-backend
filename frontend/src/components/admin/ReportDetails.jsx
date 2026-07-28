@@ -3,7 +3,7 @@ import axios from "axios";
 import { useParams, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import TopNavbar from "./TopNavbar";
-import { ArrowLeft, FileText, User, MapPin, Calendar, AlertCircle } from "lucide-react";
+import { ArrowLeft, FileText, User, MapPin, Calendar } from "lucide-react";
 
 export default function ReportDetails() {
     const { id } = useParams();
@@ -28,7 +28,19 @@ export default function ReportDetails() {
         try {
             setLoading(true);
             const response = await api.get(`/api/reports/${id}`);
-            setReport(response.data.data ?? response.data);
+            let fetchedReport = response.data.data ?? response.data;
+
+            // Merge local overrides for instant UI updates
+            const localAssignments = JSON.parse(localStorage.getItem("report_assignments") || "{}");
+            if (localAssignments[id]) {
+                fetchedReport = {
+                    ...fetchedReport,
+                    status: localAssignments[id].status || fetchedReport.status,
+                    technicianName: localAssignments[id].technicianName || fetchedReport.technicianName
+                };
+            }
+
+            setReport(fetchedReport);
         } catch (err) {
             console.error("Failed to fetch report details:", err);
             setErrorMsg("Could not load report details from database.");
@@ -36,6 +48,14 @@ export default function ReportDetails() {
             setLoading(false);
         }
     };
+
+    const fullName = report?.residentFirstName || report?.residentLastName
+        ? `${report.residentFirstName || ""} ${report.residentLastName || ""}`.trim()
+        : "Citizen Reporter";
+
+    const emailAddr = report?.residentEmail || report?.email || "N/A";
+    const phoneNum = report?.residentPhone || report?.phone || "N/A";
+    const techName = report?.technicianName || report?.technician?.name || "Unassigned";
 
     return (
         <div className="flex bg-gray-100 min-h-screen">
@@ -72,7 +92,6 @@ export default function ReportDetails() {
                         </div>
                     ) : report ? (
                         <div className="space-y-6">
-                            {/* Incident Description Card */}
                             <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
                                 <div className="flex items-center gap-2 text-blue-600 font-semibold text-lg border-b pb-3">
                                     <FileText size={22} /> Incident Information
@@ -125,7 +144,6 @@ export default function ReportDetails() {
                                 </div>
                             </div>
 
-                            {/* Reporter Details Card */}
                             <div className="bg-white rounded-xl shadow-md p-6 space-y-4">
                                 <div className="flex items-center gap-2 text-indigo-600 font-semibold text-lg border-b pb-3">
                                     <User size={22} /> Person Who Logged Report
@@ -134,27 +152,19 @@ export default function ReportDetails() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase font-semibold">Full Name</p>
-                                        <p className="text-gray-800 font-medium">
-                                            {report.user?.name || report.reporterName || report.username || "Citizen Reporter"}
-                                        </p>
+                                        <p className="text-gray-800 font-medium">{fullName}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase font-semibold">Email Address</p>
-                                        <p className="text-gray-800 font-medium">
-                                            {report.user?.email || report.reporterEmail || report.email || "N/A"}
-                                        </p>
+                                        <p className="text-gray-800 font-medium">{emailAddr}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase font-semibold">Phone Number</p>
-                                        <p className="text-gray-800 font-medium">
-                                            {report.user?.phone || report.reporterPhone || report.phone || "N/A"}
-                                        </p>
+                                        <p className="text-gray-800 font-medium">{phoneNum}</p>
                                     </div>
                                     <div>
                                         <p className="text-xs text-gray-400 uppercase font-semibold">Assigned Technician</p>
-                                        <p className="text-gray-800 font-medium">
-                                            {report.technician?.name || report.technicianName || "Unassigned"}
-                                        </p>
+                                        <p className="text-gray-800 font-medium">{techName}</p>
                                     </div>
                                 </div>
                             </div>

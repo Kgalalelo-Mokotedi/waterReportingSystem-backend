@@ -26,7 +26,6 @@ export default function ResidentSidebar() {
         { title: "Dashboard", icon: <LayoutDashboard size={20} />, path: "/resident" },
         { title: "Create Report", icon: <PlusCircle size={20} />, path: "/resident/create" },
         { title: "My Reports", icon: <ClipboardList size={20} />, path: "/resident/reports" },
-        { title: "Report History", icon: <History size={20} />, path: "/resident/history" },
         { title: "Profile", icon: <UserCircle size={20} />, path: "/resident/profile" }
     ];
 
