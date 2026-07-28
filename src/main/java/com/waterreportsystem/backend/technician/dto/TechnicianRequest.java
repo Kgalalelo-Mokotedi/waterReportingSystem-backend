@@ -1,6 +1,5 @@
 package com.waterreportsystem.backend.technician.dto;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 /** Payload for creating/updating a technician profile (Admin only). */
@@ -9,7 +8,6 @@ public class TechnicianRequest {
     @NotNull(message = "userId is required")
     private Long userId;
 
-    @NotBlank(message = "employeeNumber is required")
     private String employeeNumber;
 
     private String specialisation;
@@ -22,4 +20,7 @@ public class TechnicianRequest {
 
     public String getSpecialisation() { return specialisation; }
     public void setSpecialisation(String specialisation) { this.specialisation = specialisation; }
+
+    /** The frontend form sends "specialty" — accept it as an alias. */
+    public void setSpecialty(String specialty) { this.specialisation = specialty; }
 }
